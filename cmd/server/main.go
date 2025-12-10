@@ -11,6 +11,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", handlers.HomeHandler)
 	mux.HandleFunc("/artists", handlers.ArtistsHandler)
+	mux.HandleFunc("/artists/", handlers.ArtistDetailHandler)
 
 	fileServer := http.FileServer(http.Dir("web/static"))
 	mux.Handle("/static/", http.StripPrefix("/static/", fileServer))
