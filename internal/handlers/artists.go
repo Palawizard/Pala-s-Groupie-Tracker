@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"html/template"
 	"net/http"
 	"strconv"
@@ -10,19 +9,14 @@ import (
 	"palasgroupietracker/internal/api"
 )
 
-type MemberFilterOption struct {
-	Value    int
-	Label    string
-	Selected bool
-}
-
 type ArtistsPageData struct {
-	Title         string
-	Artists       []api.Artist
-	Query         string
-	YearMin       string
-	YearMax       string
-	MemberOptions []MemberFilterOption
+	Title      string
+	Artists    []api.Artist
+	Query      string
+	YearMin    string
+	YearMax    string
+	MembersMin string
+	MembersMax string
 }
 
 func ArtistsHandler(w http.ResponseWriter, r *http.Request) {
@@ -35,32 +29,13 @@ func ArtistsHandler(w http.ResponseWriter, r *http.Request) {
 	query := strings.TrimSpace(r.URL.Query().Get("q"))
 	yearMinStr := strings.TrimSpace(r.URL.Query().Get("year_min"))
 	yearMaxStr := strings.TrimSpace(r.URL.Query().Get("year_max"))
-	memberParams := r.URL.Query()["members"]
+	membersMinStr := strings.TrimSpace(r.URL.Query().Get("members_min"))
+	membersMaxStr := strings.TrimSpace(r.URL.Query().Get("members_max"))
 
 	yearMin, _ := strconv.Atoi(yearMinStr)
 	yearMax, _ := strconv.Atoi(yearMaxStr)
-
-	selectedMemberCounts := make(map[int]bool)
-	for _, v := range memberParams {
-		if n, err := strconv.Atoi(v); err == nil {
-			selectedMemberCounts[n] = true
-		}
-	}
-
-	baseCounts := []int{1, 2, 3, 4, 5, 6, 7, 8}
-	memberOptions := make([]MemberFilterOption, 0, len(baseCounts))
-	for _, c := range baseCounts {
-		label := fmt.Sprintf("%d members", c)
-		if c == 1 {
-			label = "1 member"
-		}
-		_, selected := selectedMemberCounts[c]
-		memberOptions = append(memberOptions, MemberFilterOption{
-			Value:    c,
-			Label:    label,
-			Selected: selected,
-		})
-	}
+	membersMin, _ := strconv.Atoi(membersMinStr)
+	membersMax, _ := strconv.Atoi(membersMaxStr)
 
 	filtered := make([]api.Artist, 0, len(artists))
 	lowerQuery := strings.ToLower(query)
@@ -89,7 +64,10 @@ func ArtistsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		memberCount := len(a.Members)
-		if len(selectedMemberCounts) > 0 && !selectedMemberCounts[memberCount] {
+		if membersMin > 0 && memberCount < membersMin {
+			continue
+		}
+		if membersMax > 0 && memberCount > membersMax {
 			continue
 		}
 
@@ -106,12 +84,13 @@ func ArtistsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := ArtistsPageData{
-		Title:         "Artists",
-		Artists:       filtered,
-		Query:         query,
-		YearMin:       yearMinStr,
-		YearMax:       yearMaxStr,
-		MemberOptions: memberOptions,
+		Title:      "Artists",
+		Artists:    filtered,
+		Query:      query,
+		YearMin:    yearMinStr,
+		YearMax:    yearMaxStr,
+		MembersMin: membersMinStr,
+		MembersMax: membersMaxStr,
 	}
 
 	err = tmpl.ExecuteTemplate(w, "layout", data)

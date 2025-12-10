@@ -6,27 +6,25 @@
                     Artists
                 </h1>
                 <p class="text-sm text-slate-300">
-                    Search and filter artists.
+                    Search and filter artists from the Groupie Trackers API.
                 </p>
             </div>
         </div>
 
-        <form method="GET" class="space-y-3 rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+        <form id="artist-filters" method="GET" class="space-y-3 rounded-xl border border-slate-800 bg-slate-900/60 p-4">
             <div class="flex flex-col md:flex-row gap-3 md:items-end">
                 <div class="flex-1">
                     <label for="q" class="block text-xs font-medium text-slate-300 mb-1">
                         Search
                     </label>
-                    <div class="relative">
-                        <input
-                                id="q"
-                                name="q"
-                                type="text"
-                                placeholder="By artist name or member"
-                                value="{{ .Query }}"
-                                class="w-full rounded-full border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                        >
-                    </div>
+                    <input
+                            id="q"
+                            name="q"
+                            type="text"
+                            placeholder="By artist name or member"
+                            value="{{ .Query }}"
+                            class="w-full rounded-full border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    >
                 </div>
 
                 <div class="flex gap-3">
@@ -62,28 +60,36 @@
             </div>
 
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                <div class="flex flex-wrap gap-2 text-xs">
-                    {{ range .MemberOptions }}
-                        <label class="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-950/80 px-2 py-1 text-slate-300">
-                            <input
-                                    type="checkbox"
-                                    name="members"
-                                    value="{{ .Value }}"
-                                    class="h-3 w-3 rounded border-slate-600 bg-slate-900 text-emerald-500 focus:ring-emerald-500"
-                                    {{ if .Selected }}checked{{ end }}
-                            >
-                            <span>{{ .Label }}</span>
+                <div class="flex gap-3">
+                    <div>
+                        <label for="members_min" class="block text-xs font-medium text-slate-300 mb-1">
+                            Min members
                         </label>
-                    {{ end }}
+                        <input
+                                id="members_min"
+                                name="members_min"
+                                type="number"
+                                min="1"
+                                value="{{ .MembersMin }}"
+                                class="w-28 rounded-full border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        >
+                    </div>
+                    <div>
+                        <label for="members_max" class="block text-xs font-medium text-slate-300 mb-1">
+                            Max members
+                        </label>
+                        <input
+                                id="members_max"
+                                name="members_max"
+                                type="number"
+                                min="1"
+                                value="{{ .MembersMax }}"
+                                class="w-28 rounded-full border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        >
+                    </div>
                 </div>
 
                 <div class="flex gap-2">
-                    <button
-                            type="submit"
-                            class="inline-flex items-center justify-center rounded-full bg-emerald-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-emerald-400 transition-colors"
-                    >
-                        Apply filters
-                    </button>
                     <a
                             href="/artists"
                             class="inline-flex items-center justify-center rounded-full border border-slate-700 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800/80 transition-colors"
@@ -110,5 +116,33 @@
                 </a>
             {{ end }}
         </div>
+
+        <script>
+            (function () {
+                const form = document.getElementById("artist-filters");
+                if (!form) return;
+
+                const inputs = form.querySelectorAll("input");
+                let timeoutId;
+
+                function submitWithDelay() {
+                    if (timeoutId) {
+                        window.clearTimeout(timeoutId);
+                    }
+                    timeoutId = window.setTimeout(function () {
+                        if (form.requestSubmit) {
+                            form.requestSubmit();
+                        } else {
+                            form.submit();
+                        }
+                    }, 300);
+                }
+
+                inputs.forEach(function (input) {
+                    const eventName = input.type === "text" || input.type === "number" ? "input" : "change";
+                    input.addEventListener(eventName, submitWithDelay);
+                });
+            })();
+        </script>
     </section>
 {{ end }}
