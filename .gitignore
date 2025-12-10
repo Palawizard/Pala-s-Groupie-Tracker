@@ -45,5 +45,15 @@ tmp/
 *.key
 *.pem
 
+# Node / npm
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# NPM cache (optionnel)
+.npm/
+
 # Ne pas ignorer go.mod / go.sum ni tes templates et fichiers statiques
 # (ne rien ajouter ici pour les exclure)
