@@ -4,21 +4,23 @@
             Artists
         </h1>
         <p class="text-sm text-slate-300">
-            Here's the artists list.
+            Click an artist to see detailed information and concerts.
         </p>
 
         <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {{ range .Artists }}
-                <article class="rounded-lg border border-slate-800 bg-slate-900/60 p-3 flex flex-col gap-2">
-                    <img src="{{ .Image }}" alt="{{ .Name }}" class="w-full h-40 object-cover rounded-md">
-                    <h2 class="text-base font-semibold">{{ .Name }}</h2>
-                    <p class="text-xs text-slate-400">
-                        Creation date: {{ .CreationDate }}
-                    </p>
-                    <p class="text-xs text-slate-400">
-                        Members: {{ len .Members }}
-                    </p>
-                </article>
+                <a href="/artists/{{ .ID }}" class="block rounded-lg border border-slate-800 bg-slate-900/60 p-3 hover:border-emerald-500/70 hover:bg-slate-900 transition-colors">
+                    <article class="flex flex-col gap-2">
+                        <img src="{{ .Image }}" alt="{{ .Name }}" class="w-full h-40 object-cover rounded-md">
+                        <h2 class="text-base font-semibold">{{ .Name }}</h2>
+                        <p class="text-xs text-slate-400">
+                            Creation date: {{ .CreationDate }}
+                        </p>
+                        <p class="text-xs text-slate-400">
+                            Members: {{ len .Members }}
+                        </p>
+                    </article>
+                </a>
             {{ end }}
         </div>
     </section>
