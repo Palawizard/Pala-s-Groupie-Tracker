@@ -1,13 +1,100 @@
 {{ define "content" }}
-    <section class="space-y-4">
-        <h1 class="text-2xl font-semibold tracking-tight">
-            Artists
-        </h1>
-        <p class="text-sm text-slate-300">
-            Click an artist to see detailed information and concerts.
-        </p>
+    <section class="space-y-6">
+        <div class="flex items-center justify-between gap-3">
+            <div>
+                <h1 class="text-2xl font-semibold tracking-tight">
+                    Artists
+                </h1>
+                <p class="text-sm text-slate-300">
+                    Search and filter artists.
+                </p>
+            </div>
+        </div>
 
-        <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <form method="GET" class="space-y-3 rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+            <div class="flex flex-col md:flex-row gap-3 md:items-end">
+                <div class="flex-1">
+                    <label for="q" class="block text-xs font-medium text-slate-300 mb-1">
+                        Search
+                    </label>
+                    <div class="relative">
+                        <input
+                                id="q"
+                                name="q"
+                                type="text"
+                                placeholder="By artist name or member"
+                                value="{{ .Query }}"
+                                class="w-full rounded-full border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        >
+                    </div>
+                </div>
+
+                <div class="flex gap-3">
+                    <div>
+                        <label for="year_min" class="block text-xs font-medium text-slate-300 mb-1">
+                            Creation year min
+                        </label>
+                        <input
+                                id="year_min"
+                                name="year_min"
+                                type="number"
+                                min="1900"
+                                max="2100"
+                                value="{{ .YearMin }}"
+                                class="w-32 rounded-full border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        >
+                    </div>
+                    <div>
+                        <label for="year_max" class="block text-xs font-medium text-slate-300 mb-1">
+                            Creation year max
+                        </label>
+                        <input
+                                id="year_max"
+                                name="year_max"
+                                type="number"
+                                min="1900"
+                                max="2100"
+                                value="{{ .YearMax }}"
+                                class="w-32 rounded-full border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        >
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div class="flex flex-wrap gap-2 text-xs">
+                    {{ range .MemberOptions }}
+                        <label class="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-950/80 px-2 py-1 text-slate-300">
+                            <input
+                                    type="checkbox"
+                                    name="members"
+                                    value="{{ .Value }}"
+                                    class="h-3 w-3 rounded border-slate-600 bg-slate-900 text-emerald-500 focus:ring-emerald-500"
+                                    {{ if .Selected }}checked{{ end }}
+                            >
+                            <span>{{ .Label }}</span>
+                        </label>
+                    {{ end }}
+                </div>
+
+                <div class="flex gap-2">
+                    <button
+                            type="submit"
+                            class="inline-flex items-center justify-center rounded-full bg-emerald-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-emerald-400 transition-colors"
+                    >
+                        Apply filters
+                    </button>
+                    <a
+                            href="/artists"
+                            class="inline-flex items-center justify-center rounded-full border border-slate-700 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800/80 transition-colors"
+                    >
+                        Reset
+                    </a>
+                </div>
+            </div>
+        </form>
+
+        <div class="mt-2 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {{ range .Artists }}
                 <a href="/artists/{{ .ID }}" class="block rounded-lg border border-slate-800 bg-slate-900/60 p-3 hover:border-emerald-500/70 hover:bg-slate-900 transition-colors">
                     <article class="flex flex-col gap-2">
