@@ -1,0 +1,49 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE / Editors
+.idea/
+.vscode/
+*.iml
+
+# Build outputs
+bin/
+build/
+dist/
+out/
+
+# Go build/test artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Caches
+.cache/
+.gocache/
+
+# Coverage / profiling
+coverage.*
+coverage.out
+profile.out
+
+# Temp files
+*.log
+*.tmp
+tmp/
+.temp/
+*.swp
+*.swo
+
+# Env / secrets
+.env
+.env.*
+*.key
+*.pem
+
+# Ne pas ignorer go.mod / go.sum ni tes templates et fichiers statiques
+# (ne rien ajouter ici pour les exclure)
