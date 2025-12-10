@@ -11,7 +11,7 @@
             </div>
         </div>
 
-        <form id="artist-filters" method="GET" class="space-y-3 rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+        <form id="artist-filters" class="space-y-3 rounded-xl border border-slate-800 bg-slate-900/60 p-4">
             <div class="flex flex-col md:flex-row gap-3 md:items-end">
                 <div class="flex-1">
                     <label for="q" class="block text-xs font-medium text-slate-300 mb-1">
@@ -100,7 +100,7 @@
             </div>
         </form>
 
-        <div class="mt-2 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div id="artist-list" class="mt-2 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {{ range .Artists }}
                 <a href="/artists/{{ .ID }}" class="block rounded-lg border border-slate-800 bg-slate-900/60 p-3 hover:border-emerald-500/70 hover:bg-slate-900 transition-colors">
                     <article class="flex flex-col gap-2">
@@ -117,32 +117,6 @@
             {{ end }}
         </div>
 
-        <script>
-            (function () {
-                const form = document.getElementById("artist-filters");
-                if (!form) return;
-
-                const inputs = form.querySelectorAll("input");
-                let timeoutId;
-
-                function submitWithDelay() {
-                    if (timeoutId) {
-                        window.clearTimeout(timeoutId);
-                    }
-                    timeoutId = window.setTimeout(function () {
-                        if (form.requestSubmit) {
-                            form.requestSubmit();
-                        } else {
-                            form.submit();
-                        }
-                    }, 300);
-                }
-
-                inputs.forEach(function (input) {
-                    const eventName = input.type === "text" || input.type === "number" ? "input" : "change";
-                    input.addEventListener(eventName, submitWithDelay);
-                });
-            })();
-        </script>
+        <script src="/static/js/artists.js"></script>
     </section>
 {{ end }}

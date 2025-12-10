@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"html/template"
 	"net/http"
 	"strconv"
@@ -72,6 +73,15 @@ func ArtistsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		filtered = append(filtered, a)
+	}
+
+	if r.URL.Query().Get("format") == "json" {
+		w.Header().Set("Content-Type", "application/json")
+		err := json.NewEncoder(w).Encode(filtered)
+		if err != nil {
+			http.Error(w, "encode error", http.StatusInternalServerError)
+		}
+		return
 	}
 
 	tmpl, err := template.ParseFiles(
