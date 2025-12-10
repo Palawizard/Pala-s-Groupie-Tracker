@@ -33,23 +33,58 @@
 
         <div class="space-y-3">
             <h2 class="text-lg font-semibold">
-                Concerts
+                Concert map
             </h2>
             <p class="text-xs text-slate-400">
-                Dates and locations from the relation endpoint.
+                Markers are placed on a real world map. Click a marker to see concert dates for that location.
             </p>
-            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {{ range $location, $dates := .Relation.DatesLocations }}
-                    <article class="rounded-lg border border-slate-800 bg-slate-900/60 p-3 space-y-2">
-                        <h3 class="text-sm font-semibold">{{ $location }}</h3>
-                        <ul class="text-xs text-slate-300 space-y-1">
-                            {{ range $dates }}
-                                <li>{{ . }}</li>
-                            {{ end }}
-                        </ul>
-                    </article>
-                {{ end }}
-            </div>
+
+            <link
+                    rel="stylesheet"
+                    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+                    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+                    crossorigin=""
+            />
+
+            <div id="map" class="w-full h-80 md:h-96 rounded-xl border border-slate-800 overflow-hidden"></div>
+
+            <script
+                    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+                    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+                    crossorigin="">
+            </script>
+
+            <script>
+                const locations = {{ .LocationsJSON }};
+
+                const map = L.map('map', {
+                    worldCopyJump: true
+                }).setView([20, 0], 2);
+
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 6,
+                    minZoom: 2,
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(map);
+
+                const bounds = [];
+
+                locations.forEach(loc => {
+                    const marker = L.marker([loc.lat, loc.lng]).addTo(map);
+                    const datesHtml = loc.dates.map(d => `<div>${d}</div>`).join('');
+                    marker.bindPopup(
+                        `<div class="text-xs">
+                        <div class="font-semibold mb-1">${loc.name}</div>
+                        ${datesHtml}
+                    </div>`
+                    );
+                    bounds.push([loc.lat, loc.lng]);
+                });
+
+                if (bounds.length > 0) {
+                    map.fitBounds(bounds, { padding: [30, 30] });
+                }
+            </script>
         </div>
     </section>
 {{ end }}
