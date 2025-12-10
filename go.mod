@@ -1,3 +1,3 @@
-module groupietracker
+module palasgroupietracker
 
 go 1.25
