@@ -1,33 +1,54 @@
 {{ define "content" }}
     <section class="space-y-6">
-        <a href="/artists" class="inline-flex items-center text-xs text-slate-400 hover:text-white transition-colors">
+        <a href="/artists?source={{ .Source }}" class="inline-flex items-center text-xs text-slate-400 hover:text-white transition-colors">
             ← Back to artists
         </a>
 
         <div class="flex flex-col md:flex-row gap-6">
             <div class="md:w-1/3">
-                <img src="{{ .Artist.Image }}" alt="{{ .Artist.Name }}" class="w-full rounded-xl border border-slate-800">
+                {{ if eq .Source "spotify" }}
+                    {{ if and .SpotifyArtist .SpotifyArtist.Images }}
+                        <img src="{{ (index .SpotifyArtist.Images 0).URL }}" alt="{{ .SpotifyArtist.Name }}" class="w-full rounded-xl border border-slate-800">
+                    {{ end }}
+                {{ else }}
+                    <img src="{{ .Artist.Image }}" alt="{{ .Artist.Name }}" class="w-full rounded-xl border border-slate-800">
+                {{ end }}
             </div>
             <div class="md:w-2/3 space-y-3">
                 <h1 class="text-3xl font-semibold tracking-tight">
-                    {{ .Artist.Name }}
+                    {{ if eq .Source "spotify" }}{{ .SpotifyArtist.Name }}{{ else }}{{ .Artist.Name }}{{ end }}
                 </h1>
-                <p class="text-sm text-slate-300">
-                    Creation date: {{ .Artist.CreationDate }}
-                </p>
-                <p class="text-sm text-slate-300">
-                    First album: {{ .Artist.FirstAlbum }}
-                </p>
-                <div>
-                    <h2 class="text-sm font-semibold text-slate-200 mb-1">
-                        Members
-                    </h2>
-                    <ul class="text-sm text-slate-300 list-disc list-inside space-y-1">
-                        {{ range .Artist.Members }}
-                            <li>{{ . }}</li>
-                        {{ end }}
-                    </ul>
-                </div>
+                {{ if eq .Source "spotify" }}
+                    {{ if .SpotifyGenre }}
+                        <p class="text-sm text-slate-300">
+                            Genres: {{ .SpotifyGenre }}
+                        </p>
+                    {{ end }}
+                    {{ if .SpotifyArtist.ExternalURLs.Spotify }}
+                        <div class="mt-2">
+                            <a href="{{ .SpotifyArtist.ExternalURLs.Spotify }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center rounded-full bg-emerald-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-emerald-400 transition-colors">
+                                Open in Spotify
+                            </a>
+                        </div>
+                    {{ end }}
+                {{ else }}
+                    <p class="text-sm text-slate-300">
+                        Creation date: {{ .Artist.CreationDate }}
+                    </p>
+                    <p class="text-sm text-slate-300">
+                        First album: {{ .Artist.FirstAlbum }}
+                    </p>
+                    <div>
+                        <h2 class="text-sm font-semibold text-slate-200 mb-1">
+                            Members
+                        </h2>
+                        <ul class="text-sm text-slate-300 list-disc list-inside space-y-1">
+                            {{ range .Artist.Members }}
+                                <li>{{ . }}</li>
+                            {{ end }}
+                        </ul>
+                    </div>
+                {{ end }}
                 {{ if .HasWiki }}
                     <div class="space-y-2 rounded-xl border border-slate-800 bg-slate-900/60 p-4 mt-2">
                         <div class="flex items-center justify-between gap-2">
@@ -46,60 +67,62 @@
             </div>
         </div>
 
-        <div class="space-y-3">
-            <h2 class="text-lg font-semibold">
-                Concert map
-            </h2>
-            <p class="text-xs text-slate-400">
-                Markers are placed on a real world map. Click a marker to see concert dates for that location.
-            </p>
+        {{ if eq .Source "groupie" }}
+            <div class="space-y-3">
+                <h2 class="text-lg font-semibold">
+                    Concert map
+                </h2>
+                <p class="text-xs text-slate-400">
+                    Markers are placed on a real world map. Click a marker to see concert dates for that location.
+                </p>
 
-            <link
-                    rel="stylesheet"
-                    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-                    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-                    crossorigin=""
-            />
+                <link
+                        rel="stylesheet"
+                        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+                        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+                        crossorigin=""
+                />
 
-            <div id="map" class="w-full h-80 md:h-96 rounded-xl border border-slate-800 overflow-hidden"></div>
+                <div id="map" class="w-full h-80 md:h-96 rounded-xl border border-slate-800 overflow-hidden"></div>
 
-            <script
-                    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-                    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-                    crossorigin="">
-            </script>
+                <script
+                        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+                        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+                        crossorigin="">
+                </script>
 
-            <script>
-                const locations = {{ .LocationsJSON }};
+                <script>
+                    const locations = {{ .LocationsJSON }};
 
-                const map = L.map('map', {
-                    worldCopyJump: true
-                }).setView([20, 0], 2);
+                    const map = L.map('map', {
+                        worldCopyJump: true
+                    }).setView([20, 0], 2);
 
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 6,
-                    minZoom: 2,
-                    attribution: '&copy; OpenStreetMap contributors'
-                }).addTo(map);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 6,
+                        minZoom: 2,
+                        attribution: '&copy; OpenStreetMap contributors'
+                    }).addTo(map);
 
-                const bounds = [];
+                    const bounds = [];
 
-                locations.forEach(function (loc) {
-                    const marker = L.marker([loc.lat, loc.lng]).addTo(map);
-                    const datesHtml = loc.dates.map(function (d) { return '<div>' + d + '</div>'; }).join('');
-                    marker.bindPopup(
-                        '<div class="text-xs">' +
-                        '<div class="font-semibold mb-1">' + loc.name + '</div>' +
-                        datesHtml +
-                        '</div>'
-                    );
-                    bounds.push([loc.lat, loc.lng]);
-                });
+                    locations.forEach(function (loc) {
+                        const marker = L.marker([loc.lat, loc.lng]).addTo(map);
+                        const datesHtml = loc.dates.map(function (d) { return '<div>' + d + '</div>'; }).join('');
+                        marker.bindPopup(
+                            '<div class="text-xs">' +
+                            '<div class="font-semibold mb-1">' + loc.name + '</div>' +
+                            datesHtml +
+                            '</div>'
+                        );
+                        bounds.push([loc.lat, loc.lng]);
+                    });
 
-                if (bounds.length > 0) {
-                    map.fitBounds(bounds, { padding: [30, 30] });
-                }
-            </script>
-        </div>
+                    if (bounds.length > 0) {
+                        map.fitBounds(bounds, { padding: [30, 30] });
+                    }
+                </script>
+            </div>
+        {{ end }}
     </section>
 {{ end }}

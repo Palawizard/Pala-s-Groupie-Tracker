@@ -6,10 +6,13 @@ import (
 )
 
 type HomePageData struct {
-	Title string
+	Title  string
+	Source string
 }
 
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
+	source := getSource(r)
+
 	tmpl, err := template.ParseFiles(
 		"web/templates/layout.gohtml",
 		"web/templates/home.gohtml",
@@ -20,7 +23,8 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := HomePageData{
-		Title: "Groupie Tracker",
+		Title:  "Groupie Tracker",
+		Source: source,
 	}
 
 	err = tmpl.ExecuteTemplate(w, "layout", data)

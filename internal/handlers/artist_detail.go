@@ -3,9 +3,11 @@ package handlers
 import (
 	"encoding/json"
 	"html/template"
+	"log"
 	"net/http"
 	"path"
 	"strconv"
+	"unicode"
 
 	"palasgroupietracker/internal/api"
 )
@@ -19,7 +21,10 @@ type MapLocation struct {
 
 type ArtistDetailPageData struct {
 	Title         string
+	Source        string
 	Artist        *api.Artist
+	SpotifyArtist *api.SpotifyArtist
+	SpotifyGenre  string
 	LocationsJSON template.JS
 	WikiSummary   string
 	WikiURL       string
@@ -27,8 +32,19 @@ type ArtistDetailPageData struct {
 }
 
 func ArtistDetailHandler(w http.ResponseWriter, r *http.Request) {
-	idStr := path.Base(r.URL.Path)
-	id, err := strconv.Atoi(idStr)
+	idSegment := path.Base(r.URL.Path)
+	sourceParam := getSource(r)
+
+	if _, err := strconv.Atoi(idSegment); err != nil || sourceParam == "spotify" {
+		handleSpotifyArtistDetail(w, r, idSegment)
+		return
+	}
+
+	handleGroupieArtistDetail(w, r, idSegment)
+}
+
+func handleGroupieArtistDetail(w http.ResponseWriter, r *http.Request, idSegment string) {
+	id, err := strconv.Atoi(idSegment)
 	if err != nil || id <= 0 {
 		http.NotFound(w, r)
 		return
@@ -80,8 +96,65 @@ func ArtistDetailHandler(w http.ResponseWriter, r *http.Request) {
 
 	data := ArtistDetailPageData{
 		Title:         artist.Name,
+		Source:        "groupie",
 		Artist:        artist,
+		SpotifyArtist: nil,
+		SpotifyGenre:  "",
 		LocationsJSON: template.JS(locBytes),
+		WikiSummary:   wikiSummary,
+		WikiURL:       wikiURL,
+		HasWiki:       hasWiki,
+	}
+
+	err = tmpl.ExecuteTemplate(w, "layout", data)
+	if err != nil {
+		http.Error(w, "render error", http.StatusInternalServerError)
+		return
+	}
+}
+
+func handleSpotifyArtistDetail(w http.ResponseWriter, r *http.Request, idSegment string) {
+	artist, err := api.GetSpotifyArtist(idSegment)
+	if err != nil {
+		log.Printf("artist detail: failed to load spotify artist id=%s: %v\n", idSegment, err)
+		http.Error(w, "failed to load spotify artist", http.StatusInternalServerError)
+		return
+	}
+
+	emptyLocations, err := json.Marshal([]MapLocation{})
+	if err != nil {
+		http.Error(w, "failed to encode concerts", http.StatusInternalServerError)
+		return
+	}
+
+	wikiSummary, wikiURL, wikiErr := api.FetchWikipediaSummary(artist.Name)
+	hasWiki := wikiErr == nil && wikiSummary != "" && wikiURL != ""
+
+	genre := ""
+	if len(artist.Genres) > 0 {
+		runes := []rune(artist.Genres[0])
+		if len(runes) > 0 {
+			runes[0] = unicode.ToUpper(runes[0])
+		}
+		genre = string(runes)
+	}
+
+	tmpl, err := template.ParseFiles(
+		"web/templates/layout.gohtml",
+		"web/templates/artist_detail.gohtml",
+	)
+	if err != nil {
+		http.Error(w, "template error", http.StatusInternalServerError)
+		return
+	}
+
+	data := ArtistDetailPageData{
+		Title:         artist.Name,
+		Source:        "spotify",
+		Artist:        nil,
+		SpotifyArtist: artist,
+		SpotifyGenre:  genre,
+		LocationsJSON: template.JS(emptyLocations),
 		WikiSummary:   wikiSummary,
 		WikiURL:       wikiURL,
 		HasWiki:       hasWiki,

@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"encoding/json"
 	"html/template"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -12,7 +12,9 @@ import (
 
 type ArtistsPageData struct {
 	Title      string
+	Source     string
 	Artists    []api.Artist
+	Spotify    []api.SpotifyArtist
 	Query      string
 	YearMin    string
 	YearMax    string
@@ -21,10 +23,79 @@ type ArtistsPageData struct {
 }
 
 func ArtistsHandler(w http.ResponseWriter, r *http.Request) {
-	artists, err := api.FetchArtists()
+	source := getSource(r)
+	log.Printf("artists: page request, source=%s, rawQuery=%q\n", source, r.URL.RawQuery)
+
+	var data ArtistsPageData
+	var err error
+
+	if source == "spotify" {
+		data, err = buildSpotifyData(r)
+	} else {
+		data, err = buildGroupieData(r)
+	}
+
 	if err != nil {
 		http.Error(w, "failed to load artists", http.StatusInternalServerError)
 		return
+	}
+
+	tmpl, err := template.ParseFiles(
+		"web/templates/layout.gohtml",
+		"web/templates/artists.gohtml",
+	)
+	if err != nil {
+		log.Printf("artists: template error (page): %v\n", err)
+		http.Error(w, "template error", http.StatusInternalServerError)
+		return
+	}
+
+	err = tmpl.ExecuteTemplate(w, "layout", data)
+	if err != nil {
+		log.Printf("artists: render error (page): %v\n", err)
+		http.Error(w, "render error", http.StatusInternalServerError)
+		return
+	}
+}
+
+func ArtistsAjaxHandler(w http.ResponseWriter, r *http.Request) {
+	source := getSource(r)
+	log.Printf("artists: ajax request, source=%s, rawQuery=%q\n", source, r.URL.RawQuery)
+
+	var data ArtistsPageData
+	var err error
+
+	if source == "spotify" {
+		data, err = buildSpotifyData(r)
+	} else {
+		data, err = buildGroupieData(r)
+	}
+
+	if err != nil {
+		http.Error(w, "failed to load artists", http.StatusInternalServerError)
+		return
+	}
+
+	tmpl, err := template.ParseFiles("web/templates/artists.gohtml")
+	if err != nil {
+		log.Printf("artists: template error (ajax): %v\n", err)
+		http.Error(w, "template error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	err = tmpl.ExecuteTemplate(w, "artist_list", data)
+	if err != nil {
+		log.Printf("artists: render error (ajax): %v\n", err)
+		http.Error(w, "render error", http.StatusInternalServerError)
+		return
+	}
+}
+
+func buildGroupieData(r *http.Request) (ArtistsPageData, error) {
+	artists, err := api.FetchArtists()
+	if err != nil {
+		return ArtistsPageData{}, err
 	}
 
 	query := strings.TrimSpace(r.URL.Query().Get("q"))
@@ -75,26 +146,9 @@ func ArtistsHandler(w http.ResponseWriter, r *http.Request) {
 		filtered = append(filtered, a)
 	}
 
-	if r.URL.Query().Get("format") == "json" {
-		w.Header().Set("Content-Type", "application/json")
-		err := json.NewEncoder(w).Encode(filtered)
-		if err != nil {
-			http.Error(w, "encode error", http.StatusInternalServerError)
-		}
-		return
-	}
-
-	tmpl, err := template.ParseFiles(
-		"web/templates/layout.gohtml",
-		"web/templates/artists.gohtml",
-	)
-	if err != nil {
-		http.Error(w, "template error", http.StatusInternalServerError)
-		return
-	}
-
 	data := ArtistsPageData{
 		Title:      "Artists",
+		Source:     "groupie",
 		Artists:    filtered,
 		Query:      query,
 		YearMin:    yearMinStr,
@@ -103,9 +157,23 @@ func ArtistsHandler(w http.ResponseWriter, r *http.Request) {
 		MembersMax: membersMaxStr,
 	}
 
-	err = tmpl.ExecuteTemplate(w, "layout", data)
+	return data, nil
+}
+
+func buildSpotifyData(r *http.Request) (ArtistsPageData, error) {
+	query := strings.TrimSpace(r.URL.Query().Get("q"))
+
+	results, err := api.SearchSpotifyArtists(query)
 	if err != nil {
-		http.Error(w, "render error", http.StatusInternalServerError)
-		return
+		return ArtistsPageData{}, err
 	}
+
+	data := ArtistsPageData{
+		Title:   "Artists",
+		Source:  "spotify",
+		Spotify: results,
+		Query:   query,
+	}
+
+	return data, nil
 }
