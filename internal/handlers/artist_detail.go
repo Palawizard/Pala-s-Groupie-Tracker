@@ -21,6 +21,9 @@ type ArtistDetailPageData struct {
 	Title         string
 	Artist        *api.Artist
 	LocationsJSON template.JS
+	WikiSummary   string
+	WikiURL       string
+	HasWiki       bool
 }
 
 func ArtistDetailHandler(w http.ResponseWriter, r *http.Request) {
@@ -44,7 +47,6 @@ func ArtistDetailHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var locations []MapLocation
-
 	for name, dates := range relation.DatesLocations {
 		lat, lng, ok := lookupCoords(name)
 		if !ok {
@@ -64,6 +66,9 @@ func ArtistDetailHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	wikiSummary, wikiURL, wikiErr := api.FetchWikipediaSummary(artist.Name)
+	hasWiki := wikiErr == nil && wikiSummary != "" && wikiURL != ""
+
 	tmpl, err := template.ParseFiles(
 		"web/templates/layout.gohtml",
 		"web/templates/artist_detail.gohtml",
@@ -77,6 +82,9 @@ func ArtistDetailHandler(w http.ResponseWriter, r *http.Request) {
 		Title:         artist.Name,
 		Artist:        artist,
 		LocationsJSON: template.JS(locBytes),
+		WikiSummary:   wikiSummary,
+		WikiURL:       wikiURL,
+		HasWiki:       hasWiki,
 	}
 
 	err = tmpl.ExecuteTemplate(w, "layout", data)
@@ -90,7 +98,7 @@ func lookupCoords(location string) (float64, float64, bool) {
 	coords := map[string][2]float64{
 		"london-uk":                 {51.5074, -0.1278},
 		"lausanne-switzerland":      {46.5197, 6.6323},
-		"lyon-france":               {45.7640, 4.8357},
+		"lyon-france":               {45.764, 4.8357},
 		"los_angeles-usa":           {34.0522, -118.2437},
 		"georgia-usa":               {32.1656, -82.9001},
 		"north_carolina-usa":        {35.7596, -79.0193},
@@ -105,9 +113,9 @@ func lookupCoords(location string) (float64, float64, bool) {
 		"nagoya-japan":              {35.1815, 136.9066},
 		"yogyakarta-indonesia":      {-7.7956, 110.3695},
 		"budapest-hungary":          {47.4979, 19.0402},
-		"minsk-belarus":             {53.9006, 27.5590},
+		"minsk-belarus":             {53.9006, 27.559},
 		"bratislava-slovakia":       {48.1486, 17.1077},
-		"noumea-new_caledonia":      {-22.2711, 166.4380},
+		"noumea-new_caledonia":      {-22.2711, 166.438},
 		"papeete-french_polynesia":  {-17.5516, -149.5585},
 		"playa_del_carmen-mexico":   {20.6296, -87.0739},
 	}
