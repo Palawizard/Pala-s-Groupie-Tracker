@@ -5,13 +5,20 @@
                 <h1 class="text-2xl font-semibold tracking-tight">
                     Artists
                 </h1>
-                <p class="text-sm text-slate-300">
-                    Search and filter artists.
-                </p>
+                {{ if eq .Source "spotify" }}
+                    <p class="text-sm text-slate-300">
+                        Search Spotify artists using the same interface.
+                    </p>
+                {{ else }}
+                    <p class="text-sm text-slate-300">
+                        Search and filter artists from the Groupie Trackers API.
+                    </p>
+                {{ end }}
             </div>
         </div>
 
         <form id="artist-filters" class="space-y-3 rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+            <input type="hidden" id="source" name="source" value="{{ .Source }}">
             <div class="flex flex-col md:flex-row gap-3 md:items-end">
                 <div class="flex-1">
                     <label for="q" class="block text-xs font-medium text-slate-300 mb-1">
@@ -27,96 +34,131 @@
                     >
                 </div>
 
-                <div class="flex gap-3">
-                    <div>
-                        <label for="year_min" class="block text-xs font-medium text-slate-300 mb-1">
-                            Creation year min
-                        </label>
-                        <input
-                                id="year_min"
-                                name="year_min"
-                                type="number"
-                                min="1900"
-                                max="2100"
-                                value="{{ .YearMin }}"
-                                class="w-32 rounded-full border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                        >
+                {{ if ne .Source "spotify" }}
+                    <div class="flex gap-3">
+                        <div>
+                            <label for="year_min" class="block text-xs font-medium text-slate-300 mb-1">
+                                Creation year min
+                            </label>
+                            <input
+                                    id="year_min"
+                                    name="year_min"
+                                    type="number"
+                                    min="1900"
+                                    max="2100"
+                                    value="{{ .YearMin }}"
+                                    class="w-32 rounded-full border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                            >
+                        </div>
+                        <div>
+                            <label for="year_max" class="block text-xs font-medium text-slate-300 mb-1">
+                                Creation year max
+                            </label>
+                            <input
+                                    id="year_max"
+                                    name="year_max"
+                                    type="number"
+                                    min="1900"
+                                    max="2100"
+                                    value="{{ .YearMax }}"
+                                    class="w-32 rounded-full border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                            >
+                        </div>
                     </div>
-                    <div>
-                        <label for="year_max" class="block text-xs font-medium text-slate-300 mb-1">
-                            Creation year max
-                        </label>
-                        <input
-                                id="year_max"
-                                name="year_max"
-                                type="number"
-                                min="1900"
-                                max="2100"
-                                value="{{ .YearMax }}"
-                                class="w-32 rounded-full border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                        >
-                    </div>
-                </div>
+                {{ end }}
             </div>
 
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                <div class="flex gap-3">
-                    <div>
-                        <label for="members_min" class="block text-xs font-medium text-slate-300 mb-1">
-                            Min members
-                        </label>
-                        <input
-                                id="members_min"
-                                name="members_min"
-                                type="number"
-                                min="1"
-                                value="{{ .MembersMin }}"
-                                class="w-28 rounded-full border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                        >
+            {{ if ne .Source "spotify" }}
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div class="flex gap-3">
+                        <div>
+                            <label for="members_min" class="block text-xs font-medium text-slate-300 mb-1">
+                                Min members
+                            </label>
+                            <input
+                                    id="members_min"
+                                    name="members_min"
+                                    type="number"
+                                    min="1"
+                                    value="{{ .MembersMin }}"
+                                    class="w-28 rounded-full border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                            >
+                        </div>
+                        <div>
+                            <label for="members_max" class="block text-xs font-medium text-slate-300 mb-1">
+                                Max members
+                            </label>
+                            <input
+                                    id="members_max"
+                                    name="members_max"
+                                    type="number"
+                                    min="1"
+                                    value="{{ .MembersMax }}"
+                                    class="w-28 rounded-full border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                            >
+                        </div>
                     </div>
-                    <div>
-                        <label for="members_max" class="block text-xs font-medium text-slate-300 mb-1">
-                            Max members
-                        </label>
-                        <input
-                                id="members_max"
-                                name="members_max"
-                                type="number"
-                                min="1"
-                                value="{{ .MembersMax }}"
-                                class="w-28 rounded-full border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+
+                    <div class="flex gap-2">
+                        <a
+                                href="/artists"
+                                class="inline-flex items-center justify-center rounded-full border border-slate-700 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800/80 transition-colors"
                         >
+                            Reset
+                        </a>
                     </div>
                 </div>
-
-                <div class="flex gap-2">
+            {{ else }}
+                <div class="flex justify-end">
                     <a
-                            href="/artists"
+                            href="/artists?source=spotify"
                             class="inline-flex items-center justify-center rounded-full border border-slate-700 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800/80 transition-colors"
                     >
                         Reset
                     </a>
                 </div>
-            </div>
+            {{ end }}
         </form>
 
         <div id="artist-list" class="mt-2 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {{ range .Artists }}
-                <a href="/artists/{{ .ID }}" class="block rounded-lg border border-slate-800 bg-slate-900/60 p-3 hover:border-emerald-500/70 hover:bg-slate-900 transition-colors">
-                    <article class="flex flex-col gap-2">
-                        <img src="{{ .Image }}" alt="{{ .Name }}" class="w-full h-40 object-cover rounded-md">
-                        <h2 class="text-base font-semibold">{{ .Name }}</h2>
-                        <p class="text-xs text-slate-400">
-                            Creation date: {{ .CreationDate }}
-                        </p>
-                        <p class="text-xs text-slate-400">
-                            Members: {{ len .Members }}
-                        </p>
-                    </article>
-                </a>
-            {{ end }}
+            {{ template "artist_list" . }}
         </div>
 
         <script src="/static/js/artists.js"></script>
     </section>
+{{ end }}
+
+{{ define "artist_list" }}
+    {{ if eq .Source "spotify" }}
+        {{ range .Spotify }}
+            <a href="/artists/{{ .ID }}?source=spotify" class="block rounded-lg border border-slate-800 bg-slate-900/60 p-3 hover:border-emerald-500/70 hover:bg-slate-900 transition-colors">
+                <article class="flex flex-col gap-2">
+                    {{ if .Images }}
+                        <img src="{{ (index .Images 0).URL }}" alt="{{ .Name }}" class="w-full h-40 object-cover rounded-md">
+                    {{ end }}
+                    <h2 class="text-base font-semibold">{{ .Name }}</h2>
+                    {{ if .Genres }}
+                        <p class="text-xs text-slate-400">
+                            Genres: {{ index .Genres 0 }}
+                        </p>
+                    {{ end }}
+                </article>
+            </a>
+        {{ end }}
+    {{ else }}
+        {{ range .Artists }}
+            <a href="/artists/{{ .ID }}" class="block rounded-lg border border-slate-800 bg-slate-900/60 p-3 hover:border-emerald-500/70 hover:bg-slate-900 transition-colors">
+                <article class="flex flex-col gap-2">
+                    <img src="{{ .Image }}" alt="{{ .Name }}" class="w-full h-40 object-cover rounded-md">
+                    <h2 class="text-base font-semibold">{{ .Name }}</h2>
+                    <p class="text-xs text-slate-400">
+                        Creation date: {{ .CreationDate }}
+                    </p>
+                    <p class="text-xs text-slate-400">
+                        Members: {{ len .Members }}
+                    </p>
+                </article>
+            </a>
+        {{ end }}
+    {{ end }}
 {{ end }}
