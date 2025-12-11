@@ -7,7 +7,7 @@
                 </h1>
                 {{ if eq .Source "spotify" }}
                     <p class="text-sm text-slate-300">
-                        Search Spotify artists.
+                        Search Spotify artists using the same interface.
                     </p>
                 {{ else }}
                     <p class="text-sm text-slate-300">
@@ -109,13 +109,42 @@
                     </div>
                 </div>
             {{ else }}
-                <div class="flex justify-end">
-                    <a
-                            href="/artists?source=spotify"
-                            class="inline-flex items-center justify-center rounded-full border border-slate-700 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800/80 transition-colors"
-                    >
-                        Reset
-                    </a>
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div>
+                        <label for="sort" class="block text-xs font-medium text-slate-300 mb-1">
+                            Sort
+                        </label>
+                        <select
+                                id="sort"
+                                name="sort"
+                                class="w-52 rounded-full border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-xs text-slate-100 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        >
+                            <option value="relevance" {{ if or (eq .Sort "") (eq .Sort "relevance") }}selected{{ end }}>
+                                Relevance (Spotify)
+                            </option>
+                            <option value="followers_desc" {{ if eq .Sort "followers_desc" }}selected{{ end }}>
+                                Followers ↓
+                            </option>
+                            <option value="followers_asc" {{ if eq .Sort "followers_asc" }}selected{{ end }}>
+                                Followers ↑
+                            </option>
+                            <option value="listeners_desc" {{ if eq .Sort "listeners_desc" }}selected{{ end }}>
+                                LastFM monthly listeners ↓
+                            </option>
+                            <option value="listeners_asc" {{ if eq .Sort "listeners_asc" }}selected{{ end }}>
+                                LastFM monthly listeners ↑
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="flex justify-end md:ml-auto">
+                        <a
+                                href="/artists?source=spotify"
+                                class="inline-flex items-center justify-center rounded-full border border-slate-700 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800/80 transition-colors"
+                        >
+                            Reset
+                        </a>
+                    </div>
                 </div>
             {{ end }}
         </form>
@@ -131,15 +160,20 @@
 {{ define "artist_list" }}
     {{ if eq .Source "spotify" }}
         {{ range .Spotify }}
-            <a href="/artists/{{ .ID }}?source=spotify" class="block rounded-lg border border-slate-800 bg-slate-900/60 p-3 hover:border-emerald-500/70 hover:bg-slate-900 transition-colors">
+            <a href="/artists/{{ .Artist.ID }}?source=spotify" class="block rounded-lg border border-slate-800 bg-slate-900/60 p-3 hover:border-emerald-500/70 hover:bg-slate-900 transition-colors">
                 <article class="flex flex-col gap-2">
-                    {{ if .Images }}
-                        <img src="{{ (index .Images 0).URL }}" alt="{{ .Name }}" class="w-full h-40 object-cover rounded-md">
+                    {{ if .Artist.Images }}
+                        <img src="{{ (index .Artist.Images 0).URL }}" alt="{{ .Artist.Name }}" class="w-full h-40 object-cover rounded-md">
                     {{ end }}
-                    <h2 class="text-base font-semibold">{{ .Name }}</h2>
-                    {{ if .Genres }}
+                    <h2 class="text-base font-semibold">{{ .Artist.Name }}</h2>
+                    {{ if gt .Followers 0 }}
                         <p class="text-xs text-slate-400">
-                            Genres: {{ index .Genres 0 }}
+                            Followers: {{ .Followers }}
+                        </p>
+                    {{ end }}
+                    {{ if .Artist.Genres }}
+                        <p class="text-xs text-slate-400">
+                            Genres: {{ index .Artist.Genres 0 }}
                         </p>
                     {{ end }}
                 </article>
