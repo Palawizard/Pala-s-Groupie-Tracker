@@ -28,6 +28,21 @@
                         {{ end }}
                     </ul>
                 </div>
+                {{ if .HasWiki }}
+                    <div class="space-y-2 rounded-xl border border-slate-800 bg-slate-900/60 p-4 mt-2">
+                        <div class="flex items-center justify-between gap-2">
+                            <h2 class="text-sm font-semibold text-slate-200">
+                                Wikipedia
+                            </h2>
+                            <a href="{{ .WikiURL }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-slate-200 hover:bg-slate-800/90 transition-colors">
+                                Wikipedia
+                            </a>
+                        </div>
+                        <p class="text-sm text-slate-300">
+                            {{ .WikiSummary }}
+                        </p>
+                    </div>
+                {{ end }}
             </div>
         </div>
 
@@ -69,14 +84,14 @@
 
                 const bounds = [];
 
-                locations.forEach(loc => {
+                locations.forEach(function (loc) {
                     const marker = L.marker([loc.lat, loc.lng]).addTo(map);
-                    const datesHtml = loc.dates.map(d => `<div>${d}</div>`).join('');
+                    const datesHtml = loc.dates.map(function (d) { return '<div>' + d + '</div>'; }).join('');
                     marker.bindPopup(
-                        `<div class="text-xs">
-                        <div class="font-semibold mb-1">${loc.name}</div>
-                        ${datesHtml}
-                    </div>`
+                        '<div class="text-xs">' +
+                        '<div class="font-semibold mb-1">' + loc.name + '</div>' +
+                        datesHtml +
+                        '</div>'
                     );
                     bounds.push([loc.lat, loc.lng]);
                 });
