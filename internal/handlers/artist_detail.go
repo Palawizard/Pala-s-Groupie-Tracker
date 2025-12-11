@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"html/template"
-	"log"
 	"net/http"
 	"path"
 	"strconv"
@@ -20,22 +19,26 @@ type MapLocation struct {
 }
 
 type ArtistDetailPageData struct {
-	Title         string
-	Source        string
-	Artist        *api.Artist
-	SpotifyArtist *api.SpotifyArtist
-	SpotifyGenre  string
-	LocationsJSON template.JS
-	WikiSummary   string
-	WikiURL       string
-	HasWiki       bool
+	Title                   string
+	Source                  string
+	Artist                  *api.Artist
+	SpotifyArtist           *api.SpotifyArtist
+	SpotifyGenre            string
+	SpotifyFollowers        int
+	SpotifyMonthlyListeners int
+	SpotifyTopTracks        []api.SpotifyTrack
+	SpotifyLatestAlbums     []api.SpotifyAlbum
+	LocationsJSON           template.JS
+	WikiSummary             string
+	WikiURL                 string
+	HasWiki                 bool
 }
 
 func ArtistDetailHandler(w http.ResponseWriter, r *http.Request) {
+	source := getSource(r)
 	idSegment := path.Base(r.URL.Path)
-	sourceParam := getSource(r)
 
-	if _, err := strconv.Atoi(idSegment); err != nil || sourceParam == "spotify" {
+	if source == "spotify" {
 		handleSpotifyArtistDetail(w, r, idSegment)
 		return
 	}
@@ -95,19 +98,22 @@ func handleGroupieArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 	}
 
 	data := ArtistDetailPageData{
-		Title:         artist.Name,
-		Source:        "groupie",
-		Artist:        artist,
-		SpotifyArtist: nil,
-		SpotifyGenre:  "",
-		LocationsJSON: template.JS(locBytes),
-		WikiSummary:   wikiSummary,
-		WikiURL:       wikiURL,
-		HasWiki:       hasWiki,
+		Title:                   artist.Name,
+		Source:                  "groupie",
+		Artist:                  artist,
+		SpotifyArtist:           nil,
+		SpotifyGenre:            "",
+		SpotifyFollowers:        0,
+		SpotifyMonthlyListeners: 0,
+		SpotifyTopTracks:        nil,
+		SpotifyLatestAlbums:     nil,
+		LocationsJSON:           template.JS(locBytes),
+		WikiSummary:             wikiSummary,
+		WikiURL:                 wikiURL,
+		HasWiki:                 hasWiki,
 	}
 
-	err = tmpl.ExecuteTemplate(w, "layout", data)
-	if err != nil {
+	if err := tmpl.ExecuteTemplate(w, "layout", data); err != nil {
 		http.Error(w, "render error", http.StatusInternalServerError)
 		return
 	}
@@ -116,7 +122,6 @@ func handleGroupieArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 func handleSpotifyArtistDetail(w http.ResponseWriter, r *http.Request, idSegment string) {
 	artist, err := api.GetSpotifyArtist(idSegment)
 	if err != nil {
-		log.Printf("artist detail: failed to load spotify artist id=%s: %v\n", idSegment, err)
 		http.Error(w, "failed to load spotify artist", http.StatusInternalServerError)
 		return
 	}
@@ -139,6 +144,26 @@ func handleSpotifyArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 		genre = string(runes)
 	}
 
+	listeners, err := api.FetchArtistMonthlyListeners(artist.Name)
+	if err != nil {
+		listeners = 0
+	}
+
+	followers := 0
+	if artist.Followers != nil {
+		followers = artist.Followers.Total
+	}
+
+	topTracks, err := api.GetSpotifyArtistTopTracks(artist.ID, "FR")
+	if err != nil {
+		topTracks = nil
+	}
+
+	latestAlbums, err := api.GetSpotifyArtistAlbums(artist.ID, "FR", 8)
+	if err != nil {
+		latestAlbums = nil
+	}
+
 	tmpl, err := template.ParseFiles(
 		"web/templates/layout.gohtml",
 		"web/templates/artist_detail.gohtml",
@@ -149,19 +174,22 @@ func handleSpotifyArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 	}
 
 	data := ArtistDetailPageData{
-		Title:         artist.Name,
-		Source:        "spotify",
-		Artist:        nil,
-		SpotifyArtist: artist,
-		SpotifyGenre:  genre,
-		LocationsJSON: template.JS(emptyLocations),
-		WikiSummary:   wikiSummary,
-		WikiURL:       wikiURL,
-		HasWiki:       hasWiki,
+		Title:                   artist.Name,
+		Source:                  "spotify",
+		Artist:                  nil,
+		SpotifyArtist:           artist,
+		SpotifyGenre:            genre,
+		SpotifyFollowers:        followers,
+		SpotifyMonthlyListeners: listeners,
+		SpotifyTopTracks:        topTracks,
+		SpotifyLatestAlbums:     latestAlbums,
+		LocationsJSON:           template.JS(emptyLocations),
+		WikiSummary:             wikiSummary,
+		WikiURL:                 wikiURL,
+		HasWiki:                 hasWiki,
 	}
 
-	err = tmpl.ExecuteTemplate(w, "layout", data)
-	if err != nil {
+	if err := tmpl.ExecuteTemplate(w, "layout", data); err != nil {
 		http.Error(w, "render error", http.StatusInternalServerError)
 		return
 	}

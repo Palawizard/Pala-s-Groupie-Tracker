@@ -2,29 +2,36 @@ package handlers
 
 import (
 	"html/template"
-	"log"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	"palasgroupietracker/internal/api"
 )
+
+type SpotifyArtistView struct {
+	Artist           api.SpotifyArtist
+	Followers        int
+	MonthlyListeners int
+}
 
 type ArtistsPageData struct {
 	Title      string
 	Source     string
 	Artists    []api.Artist
-	Spotify    []api.SpotifyArtist
+	Spotify    []SpotifyArtistView
 	Query      string
 	YearMin    string
 	YearMax    string
 	MembersMin string
 	MembersMax string
+	Sort       string
 }
 
 func ArtistsHandler(w http.ResponseWriter, r *http.Request) {
 	source := getSource(r)
-	log.Printf("artists: page request, source=%s, rawQuery=%q\n", source, r.URL.RawQuery)
 
 	var data ArtistsPageData
 	var err error
@@ -45,14 +52,11 @@ func ArtistsHandler(w http.ResponseWriter, r *http.Request) {
 		"web/templates/artists.gohtml",
 	)
 	if err != nil {
-		log.Printf("artists: template error (page): %v\n", err)
 		http.Error(w, "template error", http.StatusInternalServerError)
 		return
 	}
 
-	err = tmpl.ExecuteTemplate(w, "layout", data)
-	if err != nil {
-		log.Printf("artists: render error (page): %v\n", err)
+	if err := tmpl.ExecuteTemplate(w, "layout", data); err != nil {
 		http.Error(w, "render error", http.StatusInternalServerError)
 		return
 	}
@@ -60,7 +64,6 @@ func ArtistsHandler(w http.ResponseWriter, r *http.Request) {
 
 func ArtistsAjaxHandler(w http.ResponseWriter, r *http.Request) {
 	source := getSource(r)
-	log.Printf("artists: ajax request, source=%s, rawQuery=%q\n", source, r.URL.RawQuery)
 
 	var data ArtistsPageData
 	var err error
@@ -78,15 +81,12 @@ func ArtistsAjaxHandler(w http.ResponseWriter, r *http.Request) {
 
 	tmpl, err := template.ParseFiles("web/templates/artists.gohtml")
 	if err != nil {
-		log.Printf("artists: template error (ajax): %v\n", err)
 		http.Error(w, "template error", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	err = tmpl.ExecuteTemplate(w, "artist_list", data)
-	if err != nil {
-		log.Printf("artists: render error (ajax): %v\n", err)
+	if err := tmpl.ExecuteTemplate(w, "artist_list", data); err != nil {
 		http.Error(w, "render error", http.StatusInternalServerError)
 		return
 	}
@@ -155,6 +155,7 @@ func buildGroupieData(r *http.Request) (ArtistsPageData, error) {
 		YearMax:    yearMaxStr,
 		MembersMin: membersMinStr,
 		MembersMax: membersMaxStr,
+		Sort:       "",
 	}
 
 	return data, nil
@@ -162,17 +163,84 @@ func buildGroupieData(r *http.Request) (ArtistsPageData, error) {
 
 func buildSpotifyData(r *http.Request) (ArtistsPageData, error) {
 	query := strings.TrimSpace(r.URL.Query().Get("q"))
+	sortParam := strings.TrimSpace(r.URL.Query().Get("sort"))
+
+	if query == "" {
+		query = "a"
+	}
 
 	results, err := api.SearchSpotifyArtists(query)
 	if err != nil {
 		return ArtistsPageData{}, err
 	}
 
+	views := make([]SpotifyArtistView, len(results))
+	for i, a := range results {
+		views[i].Artist = a
+		if a.Followers != nil {
+			views[i].Followers = a.Followers.Total
+		}
+	}
+
+	sem := make(chan struct{}, 8)
+	var wg sync.WaitGroup
+
+	for i := range views {
+		wg.Add(1)
+		go func(v *SpotifyArtistView) {
+			defer wg.Done()
+			sem <- struct{}{}
+			listeners, err := api.FetchArtistMonthlyListeners(v.Artist.Name)
+			if err != nil {
+				listeners = 0
+			}
+			v.MonthlyListeners = listeners
+			<-sem
+		}(&views[i])
+	}
+
+	wg.Wait()
+
+	isDefaultQuery := strings.TrimSpace(r.URL.Query().Get("q")) == ""
+
+	if isDefaultQuery {
+		if sortParam == "" {
+			sortParam = "relevance"
+		}
+	} else {
+		if sortParam == "" {
+			sortParam = "relevance"
+		}
+	}
+
+	switch sortParam {
+	case "followers_asc":
+		sort.Slice(views, func(i, j int) bool {
+			return views[i].Followers < views[j].Followers
+		})
+	case "followers_desc":
+		sort.Slice(views, func(i, j int) bool {
+			return views[i].Followers > views[j].Followers
+		})
+	case "listeners_asc":
+		sort.Slice(views, func(i, j int) bool {
+			return views[i].MonthlyListeners < views[j].MonthlyListeners
+		})
+	case "listeners_desc":
+		sort.Slice(views, func(i, j int) bool {
+			return views[i].MonthlyListeners > views[j].MonthlyListeners
+		})
+	case "relevance":
+	default:
+		sortParam = "relevance"
+	}
+
 	data := ArtistsPageData{
 		Title:   "Artists",
 		Source:  "spotify",
-		Spotify: results,
-		Query:   query,
+		Spotify: views,
+		Query:   strings.TrimSpace(r.URL.Query().Get("q")),
+		Sort:    sortParam,
 	}
 
 	return data, nil
