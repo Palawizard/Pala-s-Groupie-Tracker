@@ -18,18 +18,29 @@
                 <h1 class="text-3xl font-semibold tracking-tight">
                     {{ if eq .Source "spotify" }}{{ .SpotifyArtist.Name }}{{ else }}{{ .Artist.Name }}{{ end }}
                 </h1>
+
                 {{ if eq .Source "spotify" }}
                     {{ if .SpotifyGenre }}
                         <p class="text-sm text-slate-300">
                             Genres: {{ .SpotifyGenre }}
                         </p>
                     {{ end }}
+                    {{ if gt .SpotifyFollowers 0 }}
+                        <p class="text-sm text-slate-300">
+                            Followers: {{ .SpotifyFollowers }}
+                        </p>
+                    {{ end }}
+                    {{ if gt .SpotifyMonthlyListeners 0 }}
+                        <p class="text-sm text-slate-300">
+                            LastFM monthly listeners: {{ .SpotifyMonthlyListeners }}
+                        </p>
+                    {{ end }}
                     {{ if .SpotifyArtist.ExternalURLs.Spotify }}
-                        <div class="mt-2">
-                            <a href="{{ .SpotifyArtist.ExternalURLs.Spotify }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center rounded-full bg-emerald-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-emerald-400 transition-colors">
+                        <p class="text-sm text-slate-300">
+                            <a href="{{ .SpotifyArtist.ExternalURLs.Spotify }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-emerald-400 hover:bg-slate-800/90 transition-colors">
                                 Open in Spotify
                             </a>
-                        </div>
+                        </p>
                     {{ end }}
                 {{ else }}
                     <p class="text-sm text-slate-300">
@@ -49,6 +60,7 @@
                         </ul>
                     </div>
                 {{ end }}
+
                 {{ if .HasWiki }}
                     <div class="space-y-2 rounded-xl border border-slate-800 bg-slate-900/60 p-4 mt-2">
                         <div class="flex items-center justify-between gap-2">
@@ -66,6 +78,93 @@
                 {{ end }}
             </div>
         </div>
+
+        {{ if eq .Source "spotify" }}
+            {{ if .SpotifyTopTracks }}
+                <div class="space-y-3">
+                    <h2 class="text-lg font-semibold">
+                        Popular tracks
+                    </h2>
+                    <div class="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/60">
+                        <table class="min-w-full text-sm text-slate-200">
+                            <thead class="bg-slate-900/80 text-xs uppercase text-slate-400">
+                            <tr>
+                                <th class="px-4 py-2 text-left">Title</th>
+                                <th class="px-4 py-2 text-left hidden sm:table-cell">Album</th>
+                                <th class="px-4 py-2 text-right hidden sm:table-cell">Popularity</th>
+                                <th class="px-4 py-2 text-right">Play</th>
+                            </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800">
+                            {{ range $i, $track := .SpotifyTopTracks }}
+                                <tr class="hover:bg-slate-800/70 transition-colors">
+                                    <td class="px-4 py-2 align-middle">
+                                        <div class="flex items-center gap-3">
+                                            {{ if $track.Album.Images }}
+                                                <img src="{{ (index $track.Album.Images 0).URL }}" alt="{{ $track.Name }}" class="h-10 w-10 rounded object-cover hidden sm:block">
+                                            {{ end }}
+                                            <div>
+                                                <div class="text-sm font-medium">
+                                                    {{ $track.Name }}
+                                                </div>
+                                                <div class="text-xs text-slate-400 line-clamp-1">
+                                                    {{ $track.Album.Name }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-2 text-xs text-slate-400 align-middle hidden sm:table-cell">
+                                        {{ $track.Album.Name }}
+                                    </td>
+                                    <td class="px-4 py-2 text-xs text-slate-400 text-right align-middle hidden sm:table-cell">
+                                        {{ $track.Popularity }}
+                                    </td>
+                                    <td class="px-4 py-2 text-right align-middle">
+                                        {{ if $track.ExternalURLs.Spotify }}
+                                            <a href="{{ $track.ExternalURLs.Spotify }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-emerald-400 hover:bg-slate-800/90 transition-colors">
+                                                Open
+                                            </a>
+                                        {{ else if $track.PreviewURL }}
+                                            <audio controls class="h-8 w-full max-w-[140px] ml-auto">
+                                                <source src="{{ $track.PreviewURL }}" type="audio/mpeg">
+                                            </audio>
+                                        {{ end }}
+                                    </td>
+                                </tr>
+                            {{ end }}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {{ end }}
+
+            {{ if .SpotifyLatestAlbums }}
+                <div class="space-y-3">
+                    <h2 class="text-lg font-semibold">
+                        Latest releases
+                    </h2>
+                    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                        {{ range .SpotifyLatestAlbums }}
+                            <a href="{{ .ExternalURLs.Spotify }}" target="_blank" rel="noopener noreferrer" class="group block rounded-xl border border-slate-800 bg-slate-900/60 hover:border-emerald-500/70 hover:bg-slate-900 transition-colors">
+                                <div class="flex flex-col gap-2 p-3">
+                                    {{ if .Images }}
+                                        <img src="{{ (index .Images 0).URL }}" alt="{{ .Name }}" class="w-full h-40 object-cover rounded-md">
+                                    {{ end }}
+                                    <div class="space-y-1">
+                                        <p class="text-sm font-semibold line-clamp-2 group-hover:text-emerald-300 transition-colors">
+                                            {{ .Name }}
+                                        </p>
+                                        <p class="text-xs text-slate-400">
+                                            {{ .AlbumType }} • {{ .ReleaseDate }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </a>
+                        {{ end }}
+                    </div>
+                </div>
+            {{ end }}
+        {{ end }}
 
         {{ if eq .Source "groupie" }}
             <div class="space-y-3">

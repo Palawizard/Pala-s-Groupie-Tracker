@@ -5,7 +5,7 @@
     if (!form || !list || !sourceInput) return;
 
     var currentSource = sourceInput.value === "spotify" ? "spotify" : "groupie";
-    var inputs = form.querySelectorAll("input");
+    var inputs = form.querySelectorAll("input, select");
     var timeoutId;
 
     function buildQuery() {
@@ -51,8 +51,16 @@
     }
 
     inputs.forEach(function (input) {
-        var type = input.type;
+        var type = input.tagName.toLowerCase() === "select" ? "select" : input.type;
         var eventName = (type === "text" || type === "number") ? "input" : "change";
         input.addEventListener(eventName, scheduleFetch);
+    });
+
+    form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        if (timeoutId) {
+            window.clearTimeout(timeoutId);
+        }
+        fetchArtists();
     });
 })();
