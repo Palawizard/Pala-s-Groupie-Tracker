@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -35,12 +36,23 @@ func searchWikipediaTitle(rawQuery string) (string, error) {
 		return "", fmt.Errorf("empty query")
 	}
 
+	base := strings.TrimSpace(rawQuery)
+	lowerBase := strings.ToLower(base)
+	suffixes := []string{" band", " music group", " musical group", " singer", " musician", " rapper", " artist"}
+	for _, s := range suffixes {
+		if strings.HasSuffix(lowerBase, s) {
+			base = strings.TrimSpace(base[:len(base)-len(s)])
+			break
+		}
+	}
+	lowerBase = strings.ToLower(base)
+
 	params := url.Values{}
 	params.Set("action", "query")
 	params.Set("list", "search")
 	params.Set("format", "json")
 	params.Set("utf8", "1")
-	params.Set("srlimit", "5")
+	params.Set("srlimit", "10")
 	params.Set("srsearch", rawQuery)
 
 	u := wikiSearchEndpoint + "?" + params.Encode()
@@ -73,7 +85,49 @@ func searchWikipediaTitle(rawQuery string) (string, error) {
 		return "", fmt.Errorf("no search results")
 	}
 
-	return payload.Query.Search[0].Title, nil
+	exactTitle := ""
+	prefTitle := ""
+	anyTitle := ""
+
+	for _, hit := range payload.Query.Search {
+		title := hit.Title
+		lower := strings.ToLower(title)
+
+		if lower == lowerBase {
+			exactTitle = title
+			break
+		}
+
+		if strings.HasPrefix(lower, lowerBase+" (") {
+			if strings.Contains(lower, "(band)") ||
+				strings.Contains(lower, "(music group)") ||
+				strings.Contains(lower, "(musical group)") ||
+				strings.Contains(lower, "(singer)") ||
+				strings.Contains(lower, "(musician)") ||
+				strings.Contains(lower, "(rapper)") ||
+				strings.Contains(lower, "(artist)") {
+				if prefTitle == "" {
+					prefTitle = title
+				}
+			}
+		}
+
+		if anyTitle == "" {
+			anyTitle = title
+		}
+	}
+
+	if exactTitle != "" {
+		return exactTitle, nil
+	}
+	if prefTitle != "" {
+		return prefTitle, nil
+	}
+	if anyTitle != "" {
+		return anyTitle, nil
+	}
+
+	return "", fmt.Errorf("no suitable title")
 }
 
 func FetchWikipediaSummary(title string) (string, string, error) {
@@ -84,12 +138,18 @@ func FetchWikipediaSummary(title string) (string, string, error) {
 	var resolvedTitle string
 	var err error
 
-	resolvedTitle, err = searchWikipediaTitle(title + " band")
+	resolvedTitle, err = searchWikipediaTitle(title + " artist")
+	if err != nil {
+		resolvedTitle, err = searchWikipediaTitle(title + " band")
+	}
 	if err != nil {
 		resolvedTitle, err = searchWikipediaTitle(title + " music group")
 	}
 	if err != nil {
-		resolvedTitle = title
+		resolvedTitle, err = searchWikipediaTitle(title)
+	}
+	if err != nil {
+		return "", "", err
 	}
 
 	escaped := url.PathEscape(resolvedTitle)
