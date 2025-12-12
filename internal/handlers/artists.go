@@ -28,6 +28,7 @@ type ArtistsPageData struct {
 	MembersMin string
 	MembersMax string
 	Sort       string
+	ActiveNav  string
 }
 
 func ArtistsHandler(w http.ResponseWriter, r *http.Request) {
@@ -156,6 +157,7 @@ func buildGroupieData(r *http.Request) (ArtistsPageData, error) {
 		MembersMin: membersMinStr,
 		MembersMax: membersMaxStr,
 		Sort:       "",
+		ActiveNav:  "artists",
 	}
 
 	return data, nil
@@ -236,11 +238,12 @@ func buildSpotifyData(r *http.Request) (ArtistsPageData, error) {
 	}
 
 	data := ArtistsPageData{
-		Title:   "Artists",
-		Source:  "spotify",
-		Spotify: views,
-		Query:   strings.TrimSpace(r.URL.Query().Get("q")),
-		Sort:    sortParam,
+		Title:     "Artists",
+		Source:    "spotify",
+		Spotify:   views,
+		Query:     strings.TrimSpace(r.URL.Query().Get("q")),
+		Sort:      sortParam,
+		ActiveNav: "artists",
 	}
 
 	return data, nil

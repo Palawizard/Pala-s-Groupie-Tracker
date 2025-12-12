@@ -15,8 +15,8 @@
             </a>
             <div class="flex items-center gap-4">
                 <nav class="hidden sm:flex items-center gap-4 text-sm">
-                    <a href="/?source={{ .Source }}" class="text-slate-300 hover:text-white transition-colors">Home</a>
-                    <a href="/artists?source={{ .Source }}" class="text-slate-400 hover:text-white transition-colors">Artists</a>
+                    <a href="/?source={{ .Source }}" class="{{ if eq .ActiveNav "home" }}text-slate-300{{ else }}text-slate-400{{ end }} hover:text-white transition-colors">Home</a>
+                    <a href="/artists?source={{ .Source }}" class="{{ if eq .ActiveNav "artists" }}text-slate-300{{ else }}text-slate-400{{ end }} hover:text-white transition-colors">Artists</a>
                 </nav>
                 <div id="source-toggle" class="flex text-[11px] rounded-full border border-slate-700 overflow-hidden">
                     <button

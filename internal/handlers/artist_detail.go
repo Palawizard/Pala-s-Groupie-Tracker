@@ -24,6 +24,7 @@ type MapLocation struct {
 type ArtistDetailPageData struct {
 	Title                   string
 	Source                  string
+	ActiveNav               string
 	Artist                  *api.Artist
 	SpotifyArtist           *api.SpotifyArtist
 	SpotifyGenre            string
@@ -103,6 +104,7 @@ func handleGroupieArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 	data := ArtistDetailPageData{
 		Title:                   artist.Name,
 		Source:                  "groupie",
+		ActiveNav:               "artists",
 		Artist:                  artist,
 		SpotifyArtist:           nil,
 		SpotifyGenre:            "",
@@ -210,6 +212,7 @@ func handleSpotifyArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 	data := ArtistDetailPageData{
 		Title:                   artist.Name,
 		Source:                  "spotify",
+		ActiveNav:               "artists",
 		Artist:                  nil,
 		SpotifyArtist:           artist,
 		SpotifyGenre:            genre,

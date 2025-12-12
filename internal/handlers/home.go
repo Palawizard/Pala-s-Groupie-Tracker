@@ -6,8 +6,9 @@ import (
 )
 
 type HomePageData struct {
-	Title  string
-	Source string
+	Title     string
+	Source    string
+	ActiveNav string
 }
 
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
@@ -23,8 +24,9 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := HomePageData{
-		Title:  "Groupie Tracker",
-		Source: source,
+		Title:     "Groupie Tracker",
+		Source:    source,
+		ActiveNav: "home",
 	}
 
 	err = tmpl.ExecuteTemplate(w, "layout", data)

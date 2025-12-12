@@ -6,8 +6,9 @@ import (
 )
 
 type NotFoundPageData struct {
-	Title  string
-	Source string
+	Title     string
+	Source    string
+	ActiveNav string
 }
 
 func NotFound(w http.ResponseWriter, r *http.Request) {
@@ -23,8 +24,9 @@ func NotFound(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := NotFoundPageData{
-		Title:  "Page not found",
-		Source: "",
+		Title:     "Page not found",
+		Source:    getSource(r),
+		ActiveNav: "",
 	}
 
 	if err := tmpl.ExecuteTemplate(w, "layout", data); err != nil {
