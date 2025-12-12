@@ -18,17 +18,25 @@ type SpotifyArtistView struct {
 }
 
 type ArtistsPageData struct {
-	Title      string
-	Source     string
-	Artists    []api.Artist
-	Spotify    []SpotifyArtistView
-	Query      string
-	YearMin    string
-	YearMax    string
-	MembersMin string
-	MembersMax string
-	Sort       string
-	ActiveNav  string
+	Title           string
+	Source          string
+	Artists         []api.Artist
+	Spotify         []SpotifyArtistView
+	Query           string
+	YearMin         string
+	YearMax         string
+	MembersMin      string
+	MembersMax      string
+	Sort            string
+	ActiveNav       string
+	YearMinBound    int
+	YearMaxBound    int
+	MembersMinBound int
+	MembersMaxBound int
+	YearMinValue    int
+	YearMaxValue    int
+	MembersMinValue int
+	MembersMaxValue int
 }
 
 func ArtistsHandler(w http.ResponseWriter, r *http.Request) {
@@ -105,10 +113,50 @@ func buildGroupieData(r *http.Request) (ArtistsPageData, error) {
 	membersMinStr := strings.TrimSpace(r.URL.Query().Get("members_min"))
 	membersMaxStr := strings.TrimSpace(r.URL.Query().Get("members_max"))
 
+	yearMinBound, yearMaxBound, membersMinBound, membersMaxBound := computeGroupieBounds(artists)
+
 	yearMin, _ := strconv.Atoi(yearMinStr)
 	yearMax, _ := strconv.Atoi(yearMaxStr)
 	membersMin, _ := strconv.Atoi(membersMinStr)
 	membersMax, _ := strconv.Atoi(membersMaxStr)
+
+	yearMinValue := yearMin
+	yearMaxValue := yearMax
+	membersMinValue := membersMin
+	membersMaxValue := membersMax
+
+	if yearMinValue == 0 {
+		yearMinValue = yearMinBound
+	}
+	if yearMaxValue == 0 {
+		yearMaxValue = yearMaxBound
+	}
+	if membersMinValue == 0 {
+		membersMinValue = membersMinBound
+	}
+	if membersMaxValue == 0 {
+		membersMaxValue = membersMaxBound
+	}
+
+	if yearMinValue < yearMinBound {
+		yearMinValue = yearMinBound
+	}
+	if yearMaxValue > yearMaxBound {
+		yearMaxValue = yearMaxBound
+	}
+	if membersMinValue < membersMinBound {
+		membersMinValue = membersMinBound
+	}
+	if membersMaxValue > membersMaxBound {
+		membersMaxValue = membersMaxBound
+	}
+
+	if yearMinValue > yearMaxValue {
+		yearMinValue = yearMaxValue
+	}
+	if membersMinValue > membersMaxValue {
+		membersMinValue = membersMaxValue
+	}
 
 	filtered := make([]api.Artist, 0, len(artists))
 	lowerQuery := strings.ToLower(query)
@@ -129,18 +177,18 @@ func buildGroupieData(r *http.Request) (ArtistsPageData, error) {
 			}
 		}
 
-		if yearMin > 0 && a.CreationDate < yearMin {
+		if yearMinValue > yearMinBound && a.CreationDate < yearMinValue {
 			continue
 		}
-		if yearMax > 0 && a.CreationDate > yearMax {
+		if yearMaxValue < yearMaxBound && a.CreationDate > yearMaxValue {
 			continue
 		}
 
 		memberCount := len(a.Members)
-		if membersMin > 0 && memberCount < membersMin {
+		if membersMinValue > membersMinBound && memberCount < membersMinValue {
 			continue
 		}
-		if membersMax > 0 && memberCount > membersMax {
+		if membersMaxValue < membersMaxBound && memberCount > membersMaxValue {
 			continue
 		}
 
@@ -148,16 +196,24 @@ func buildGroupieData(r *http.Request) (ArtistsPageData, error) {
 	}
 
 	data := ArtistsPageData{
-		Title:      "Artists",
-		Source:     "groupie",
-		Artists:    filtered,
-		Query:      query,
-		YearMin:    yearMinStr,
-		YearMax:    yearMaxStr,
-		MembersMin: membersMinStr,
-		MembersMax: membersMaxStr,
-		Sort:       "",
-		ActiveNav:  "artists",
+		Title:           "Artists",
+		Source:          "groupie",
+		Artists:         filtered,
+		Query:           query,
+		YearMin:         strconv.Itoa(yearMinValue),
+		YearMax:         strconv.Itoa(yearMaxValue),
+		MembersMin:      strconv.Itoa(membersMinValue),
+		MembersMax:      strconv.Itoa(membersMaxValue),
+		Sort:            "",
+		ActiveNav:       "artists",
+		YearMinBound:    yearMinBound,
+		YearMaxBound:    yearMaxBound,
+		MembersMinBound: membersMinBound,
+		MembersMaxBound: membersMaxBound,
+		YearMinValue:    yearMinValue,
+		YearMaxValue:    yearMaxValue,
+		MembersMinValue: membersMinValue,
+		MembersMaxValue: membersMaxValue,
 	}
 
 	return data, nil
@@ -247,4 +303,43 @@ func buildSpotifyData(r *http.Request) (ArtistsPageData, error) {
 	}
 
 	return data, nil
+}
+
+func computeGroupieBounds(artists []api.Artist) (int, int, int, int) {
+	if len(artists) == 0 {
+		return 1900, 2100, 1, 10
+	}
+
+	yearMin := artists[0].CreationDate
+	yearMax := artists[0].CreationDate
+
+	maxMembers := len(artists[0].Members)
+	for i := 1; i < len(artists); i++ {
+		a := artists[i]
+		if a.CreationDate > 0 && (yearMin == 0 || a.CreationDate < yearMin) {
+			yearMin = a.CreationDate
+		}
+		if a.CreationDate > yearMax {
+			yearMax = a.CreationDate
+		}
+		if m := len(a.Members); m > maxMembers {
+			maxMembers = m
+		}
+	}
+
+	if yearMin <= 0 {
+		yearMin = 1900
+	}
+	if yearMax <= 0 {
+		yearMax = 2100
+	}
+	if yearMax < yearMin {
+		yearMax = yearMin
+	}
+
+	if maxMembers < 1 {
+		maxMembers = 1
+	}
+
+	return yearMin, yearMax, 1, maxMembers
 }

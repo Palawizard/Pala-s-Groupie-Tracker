@@ -1,5 +1,85 @@
 {{ define "content" }}
     <section class="space-y-6">
+        <style>
+            .dual-slider {
+                position: relative;
+                height: 40px;
+            }
+
+            .dual-slider .dual-track {
+                position: absolute;
+                left: 0;
+                right: 0;
+                top: 50%;
+                transform: translateY(-50%);
+                height: 4px;
+                border-radius: 9999px;
+                background: rgb(51 65 85);
+            }
+
+            .dual-slider .dual-fill {
+                position: absolute;
+                top: 50%;
+                transform: translateY(-50%);
+                height: 4px;
+                border-radius: 9999px;
+                background: rgb(16 185 129);
+                left: 0%;
+                width: 100%;
+            }
+
+            input.dual-range {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 40px;
+                margin: 0;
+                background: transparent;
+                pointer-events: none;
+                -webkit-appearance: none;
+                appearance: none;
+            }
+
+            input.dual-range:focus {
+                outline: none;
+            }
+
+            input.dual-range::-webkit-slider-runnable-track {
+                height: 4px;
+                background: transparent;
+                border: none;
+            }
+
+            input.dual-range::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                appearance: none;
+                pointer-events: auto;
+                height: 14px;
+                width: 14px;
+                border-radius: 9999px;
+                background: rgb(16 185 129);
+                border: 2px solid rgb(2 6 23);
+                box-shadow: 0 0 0 1px rgb(30 41 59);
+            }
+
+            input.dual-range::-moz-range-track {
+                height: 4px;
+                background: transparent;
+                border: none;
+            }
+
+            input.dual-range::-moz-range-thumb {
+                pointer-events: auto;
+                height: 14px;
+                width: 14px;
+                border-radius: 9999px;
+                background: rgb(16 185 129);
+                border: 2px solid rgb(2 6 23);
+                box-shadow: 0 0 0 1px rgb(30 41 59);
+            }
+        </style>
+
         <div class="flex items-center justify-between gap-3">
             <div>
                 <h1 class="text-2xl font-semibold tracking-tight">
@@ -17,96 +97,121 @@
             </div>
         </div>
 
-        <form id="artist-filters" class="space-y-3 rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+        <form id="artist-filters" class="space-y-4 rounded-xl border border-slate-800 bg-slate-900/60 p-4">
             <input type="hidden" id="source" name="source" value="{{ .Source }}">
-            <div class="flex flex-col md:flex-row gap-3 md:items-end">
-                <div class="flex-1">
-                    <label for="q" class="block text-xs font-medium text-slate-300 mb-1">
-                        Search
-                    </label>
-                    <input
-                            id="q"
-                            name="q"
-                            type="text"
-                            placeholder="By artist name or member"
-                            value="{{ .Query }}"
-                            class="w-full rounded-full border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                    >
-                </div>
 
-                {{ if ne .Source "spotify" }}
-                    <div class="flex gap-3">
-                        <div>
-                            <label for="year_min" class="block text-xs font-medium text-slate-300 mb-1">
-                                Creation year min
-                            </label>
-                            <input
-                                    id="year_min"
-                                    name="year_min"
-                                    type="number"
-                                    min="1900"
-                                    max="2100"
-                                    value="{{ .YearMin }}"
-                                    class="w-32 rounded-full border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                            >
-                        </div>
-                        <div>
-                            <label for="year_max" class="block text-xs font-medium text-slate-300 mb-1">
-                                Creation year max
-                            </label>
-                            <input
-                                    id="year_max"
-                                    name="year_max"
-                                    type="number"
-                                    min="1900"
-                                    max="2100"
-                                    value="{{ .YearMax }}"
-                                    class="w-32 rounded-full border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                            >
-                        </div>
-                    </div>
-                {{ end }}
+            <div>
+                <label for="q" class="block text-xs font-medium text-slate-300 mb-1">
+                    Search
+                </label>
+                <input
+                        id="q"
+                        name="q"
+                        type="text"
+                        placeholder="By artist name or member"
+                        value="{{ .Query }}"
+                        class="w-full rounded-full border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                >
             </div>
 
             {{ if ne .Source "spotify" }}
-                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                    <div class="flex gap-3">
-                        <div>
-                            <label for="members_min" class="block text-xs font-medium text-slate-300 mb-1">
-                                Min members
-                            </label>
+                <div class="grid gap-4 md:grid-cols-2">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="block text-xs font-medium text-slate-300">
+                                Creation year
+                            </span>
+                            <span class="text-xs text-slate-400 tabular-nums">
+                                <span id="year_min_out">{{ .YearMinValue }}</span>
+                                —
+                                <span id="year_max_out">{{ .YearMaxValue }}</span>
+                            </span>
+                        </div>
+
+                        <div class="dual-slider">
+                            <div class="dual-track"></div>
+                            <div id="year_fill" class="dual-fill"></div>
+
                             <input
-                                    id="members_min"
-                                    name="members_min"
-                                    type="number"
-                                    min="1"
-                                    value="{{ .MembersMin }}"
-                                    class="w-28 rounded-full border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                    id="year_min"
+                                    name="year_min"
+                                    type="range"
+                                    min="{{ .YearMinBound }}"
+                                    max="{{ .YearMaxBound }}"
+                                    step="1"
+                                    value="{{ .YearMinValue }}"
+                                    class="dual-range"
+                            >
+                            <input
+                                    id="year_max"
+                                    name="year_max"
+                                    type="range"
+                                    min="{{ .YearMinBound }}"
+                                    max="{{ .YearMaxBound }}"
+                                    step="1"
+                                    value="{{ .YearMaxValue }}"
+                                    class="dual-range"
                             >
                         </div>
-                        <div>
-                            <label for="members_max" class="block text-xs font-medium text-slate-300 mb-1">
-                                Max members
-                            </label>
-                            <input
-                                    id="members_max"
-                                    name="members_max"
-                                    type="number"
-                                    min="1"
-                                    value="{{ .MembersMax }}"
-                                    class="w-28 rounded-full border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                            >
+
+                        <div class="flex items-center justify-between text-[11px] text-slate-500 tabular-nums">
+                            <span>{{ .YearMinBound }}</span>
+                            <span>{{ .YearMaxBound }}</span>
                         </div>
                     </div>
 
-                    <div class="flex gap-2">
-                        <a
-                                href="/artists"
-                                class="inline-flex items-center justify-center rounded-full border border-slate-700 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800/80 transition-colors"
-                        >
-                            Reset
-                        </a>
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="block text-xs font-medium text-slate-300">
+                                Members count
+                            </span>
+                            <span class="text-xs text-slate-400 tabular-nums">
+                                <span id="members_min_out">{{ .MembersMinValue }}</span>
+                                —
+                                <span id="members_max_out">{{ .MembersMaxValue }}</span>
+                            </span>
+                        </div>
+
+                        <div class="dual-slider">
+                            <div class="dual-track"></div>
+                            <div id="members_fill" class="dual-fill"></div>
+
+                            <input
+                                    id="members_min"
+                                    name="members_min"
+                                    type="range"
+                                    min="{{ .MembersMinBound }}"
+                                    max="{{ .MembersMaxBound }}"
+                                    step="1"
+                                    value="{{ .MembersMinValue }}"
+                                    class="dual-range"
+                            >
+                            <input
+                                    id="members_max"
+                                    name="members_max"
+                                    type="range"
+                                    min="{{ .MembersMinBound }}"
+                                    max="{{ .MembersMaxBound }}"
+                                    step="1"
+                                    value="{{ .MembersMaxValue }}"
+                                    class="dual-range"
+                            >
+                        </div>
+
+                        <div class="flex items-center justify-between text-[11px] text-slate-500 tabular-nums">
+                            <span>{{ .MembersMinBound }}</span>
+                            <span>{{ .MembersMaxBound }}</span>
+                        </div>
                     </div>
+                </div>
+
+                <div class="flex justify-end">
+                    <a
+                            href="/artists"
+                            class="inline-flex items-center justify-center rounded-full border border-slate-700 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800/80 transition-colors"
+                    >
+                        Reset
+                    </a>
                 </div>
             {{ else }}
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
