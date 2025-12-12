@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"sort"
 	"strings"
+	"time"
 )
 
 type SpotifyFollowers struct {
@@ -237,15 +239,24 @@ func GetSpotifyArtistAlbums(id string, market string, limit int) ([]SpotifyAlbum
 	if strings.TrimSpace(market) == "" {
 		market = "US"
 	}
-	if limit <= 0 || limit > 20 {
+	if limit <= 0 || limit > 50 {
 		limit = 10
+	}
+
+	requestLimit := 50
+	if limit > requestLimit {
+		requestLimit = limit
+	}
+	if requestLimit > 50 {
+		requestLimit = 50
 	}
 
 	baseURL := "https://api.spotify.com/v1/artists/" + id + "/albums"
 	params := url.Values{}
 	params.Set("include_groups", "album,single")
 	params.Set("market", market)
-	params.Set("limit", fmt.Sprintf("%d", limit))
+	params.Set("limit", fmt.Sprintf("%d", requestLimit))
+	params.Set("offset", "0")
 
 	req, err := http.NewRequest("GET", baseURL+"?"+params.Encode(), nil)
 	if err != nil {
@@ -269,5 +280,69 @@ func GetSpotifyArtistAlbums(id string, market string, limit int) ([]SpotifyAlbum
 		return nil, err
 	}
 
-	return body.Items, nil
+	byID := make(map[string]SpotifyAlbum, len(body.Items))
+	for _, a := range body.Items {
+		if a.ID == "" {
+			continue
+		}
+		if existing, ok := byID[a.ID]; ok {
+			da, oka := parseSpotifyReleaseDate(a.ReleaseDate)
+			de, oke := parseSpotifyReleaseDate(existing.ReleaseDate)
+			if oka && (!oke || da.After(de)) {
+				byID[a.ID] = a
+			}
+			continue
+		}
+		byID[a.ID] = a
+	}
+
+	merged := make([]SpotifyAlbum, 0, len(byID))
+	for _, a := range byID {
+		merged = append(merged, a)
+	}
+
+	sort.SliceStable(merged, func(i, j int) bool {
+		di, okI := parseSpotifyReleaseDate(merged[i].ReleaseDate)
+		dj, okJ := parseSpotifyReleaseDate(merged[j].ReleaseDate)
+
+		if okI && okJ && !di.Equal(dj) {
+			return di.After(dj)
+		}
+		if okI != okJ {
+			return okI
+		}
+
+		ni := strings.ToLower(merged[i].Name)
+		nj := strings.ToLower(merged[j].Name)
+		if ni != nj {
+			return ni < nj
+		}
+
+		return merged[i].ID < merged[j].ID
+	})
+
+	if len(merged) > limit {
+		merged = merged[:limit]
+	}
+
+	return merged, nil
+}
+
+func parseSpotifyReleaseDate(s string) (time.Time, bool) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return time.Time{}, false
+	}
+
+	if t, err := time.Parse("2006-01-02", s); err == nil {
+		return t, true
+	}
+	if t, err := time.Parse("2006-01", s); err == nil {
+		return time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, time.UTC), true
+	}
+	if t, err := time.Parse("2006", s); err == nil {
+		return time.Date(t.Year(), time.January, 1, 0, 0, 0, 0, time.UTC), true
+	}
+
+	return time.Time{}, false
 }
