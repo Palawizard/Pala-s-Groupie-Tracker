@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"path"
 	"strconv"
+	"strings"
 	"unicode"
 
 	"palasgroupietracker/internal/api"
@@ -49,13 +50,13 @@ func ArtistDetailHandler(w http.ResponseWriter, r *http.Request) {
 func handleGroupieArtistDetail(w http.ResponseWriter, r *http.Request, idSegment string) {
 	id, err := strconv.Atoi(idSegment)
 	if err != nil || id <= 0 {
-		http.NotFound(w, r)
+		NotFound(w, r)
 		return
 	}
 
 	artist, err := api.FetchArtistByID(id)
 	if err != nil {
-		http.NotFound(w, r)
+		NotFound(w, r)
 		return
 	}
 
@@ -120,8 +121,17 @@ func handleGroupieArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 }
 
 func handleSpotifyArtistDetail(w http.ResponseWriter, r *http.Request, idSegment string) {
+	if !isLikelySpotifyID(idSegment) {
+		NotFound(w, r)
+		return
+	}
+
 	artist, err := api.GetSpotifyArtist(idSegment)
 	if err != nil {
+		if isNotFoundError(err) {
+			NotFound(w, r)
+			return
+		}
 		http.Error(w, "failed to load spotify artist", http.StatusInternalServerError)
 		return
 	}
@@ -193,6 +203,42 @@ func handleSpotifyArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 		http.Error(w, "render error", http.StatusInternalServerError)
 		return
 	}
+}
+
+func isLikelySpotifyID(s string) bool {
+	if len(s) != 22 {
+		return false
+	}
+	for _, r := range s {
+		if r >= 'a' && r <= 'z' {
+			continue
+		}
+		if r >= 'A' && r <= 'Z' {
+			continue
+		}
+		if r >= '0' && r <= '9' {
+			continue
+		}
+		return false
+	}
+	return true
+}
+
+func isNotFoundError(err error) bool {
+	msg := strings.ToLower(err.Error())
+	if strings.Contains(msg, "404") {
+		return true
+	}
+	if strings.Contains(msg, "not found") {
+		return true
+	}
+	if strings.Contains(msg, "unknown id") {
+		return true
+	}
+	if strings.Contains(msg, "invalid id") {
+		return true
+	}
+	return false
 }
 
 func lookupCoords(location string) (float64, float64, bool) {
