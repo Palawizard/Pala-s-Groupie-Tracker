@@ -5,8 +5,10 @@ import (
 	"html/template"
 	"net/http"
 	"path"
+	"sort"
 	"strconv"
 	"strings"
+	"time"
 	"unicode"
 
 	"palasgroupietracker/internal/api"
@@ -174,6 +176,28 @@ func handleSpotifyArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 		latestAlbums = nil
 	}
 
+	if len(latestAlbums) > 1 {
+		sort.SliceStable(latestAlbums, func(i, j int) bool {
+			di, okI := parseSpotifyReleaseDate(latestAlbums[i].ReleaseDate)
+			dj, okJ := parseSpotifyReleaseDate(latestAlbums[j].ReleaseDate)
+
+			if okI && okJ && !di.Equal(dj) {
+				return di.After(dj)
+			}
+			if okI != okJ {
+				return okI
+			}
+
+			ni := strings.ToLower(latestAlbums[i].Name)
+			nj := strings.ToLower(latestAlbums[j].Name)
+			if ni != nj {
+				return ni < nj
+			}
+
+			return latestAlbums[i].ID < latestAlbums[j].ID
+		})
+	}
+
 	tmpl, err := template.ParseFiles(
 		"web/templates/layout.gohtml",
 		"web/templates/artist_detail.gohtml",
@@ -203,6 +227,25 @@ func handleSpotifyArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 		http.Error(w, "render error", http.StatusInternalServerError)
 		return
 	}
+}
+
+func parseSpotifyReleaseDate(s string) (time.Time, bool) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return time.Time{}, false
+	}
+
+	if t, err := time.Parse("2006-01-02", s); err == nil {
+		return t, true
+	}
+	if t, err := time.Parse("2006-01", s); err == nil {
+		return time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, time.UTC), true
+	}
+	if t, err := time.Parse("2006", s); err == nil {
+		return time.Date(t.Year(), time.January, 1, 0, 0, 0, 0, time.UTC), true
+	}
+
+	return time.Time{}, false
 }
 
 func isLikelySpotifyID(s string) bool {

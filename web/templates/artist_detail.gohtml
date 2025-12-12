@@ -121,9 +121,14 @@
                                     </td>
                                     <td class="px-4 py-2 text-right align-middle">
                                         {{ if $track.ExternalURLs.Spotify }}
-                                            <a href="{{ $track.ExternalURLs.Spotify }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-emerald-400 hover:bg-slate-800/90 transition-colors">
+                                            <button
+                                                    type="button"
+                                                    data-spotify-open
+                                                    data-spotify-url="{{ $track.ExternalURLs.Spotify }}"
+                                                    class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-emerald-400 hover:bg-slate-800/90 transition-colors"
+                                            >
                                                 Open
-                                            </a>
+                                            </button>
                                         {{ else if $track.PreviewURL }}
                                             <audio controls class="h-8 w-full max-w-[140px] ml-auto">
                                                 <source src="{{ $track.PreviewURL }}" type="audio/mpeg">
@@ -145,7 +150,12 @@
                     </h2>
                     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         {{ range .SpotifyLatestAlbums }}
-                            <a href="{{ .ExternalURLs.Spotify }}" target="_blank" rel="noopener noreferrer" class="group block rounded-xl border border-slate-800 bg-slate-900/60 hover:border-emerald-500/70 hover:bg-slate-900 transition-colors">
+                            <button
+                                    type="button"
+                                    data-spotify-open
+                                    data-spotify-url="{{ .ExternalURLs.Spotify }}"
+                                    class="group block text-left rounded-xl border border-slate-800 bg-slate-900/60 hover:border-emerald-500/70 hover:bg-slate-900 transition-colors"
+                            >
                                 <div class="flex flex-col gap-2 p-3">
                                     {{ if .Images }}
                                         <img src="{{ (index .Images 0).URL }}" alt="{{ .Name }}" class="w-full h-40 object-cover rounded-md">
@@ -159,7 +169,7 @@
                                         </p>
                                     </div>
                                 </div>
-                            </a>
+                            </button>
                         {{ end }}
                     </div>
                 </div>
@@ -223,5 +233,36 @@
                 </script>
             </div>
         {{ end }}
+
+        <div id="spotify_modal_root" class="fixed inset-0 z-50 hidden items-center justify-center" aria-hidden="true">
+            <div id="spotify_modal_backdrop" class="absolute inset-0 bg-black/70"></div>
+
+            <div class="relative w-[min(92vw,540px)] rounded-xl border border-slate-800 bg-slate-950 shadow-2xl">
+                <div class="p-4">
+                    <iframe
+                            id="spotify_modal_iframe"
+                            title="Spotify player"
+                            src=""
+                            width="100%"
+                            height="152"
+                            frameborder="0"
+                            style="border:none;border-radius:12px"
+                            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                            loading="lazy"
+                    ></iframe>
+
+                    <div class="mt-4 flex items-center justify-end gap-2">
+                        <a id="spotify_modal_open_spotify" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-emerald-400 hover:bg-slate-900 transition-colors">
+                            Open in Spotify
+                        </a>
+                        <button id="spotify_modal_close_btn" type="button" class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-slate-200 hover:bg-slate-900 transition-colors">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script src="/static/js/spotify_modal.js"></script>
     </section>
 {{ end }}
