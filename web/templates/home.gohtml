@@ -1,15 +1,222 @@
 {{ define "content" }}
-    <section class="space-y-4">
-        <h1 class="text-3xl font-semibold tracking-tight">
-            Pala's Groupie Tracker
-        </h1>
-        <p class="text-sm text-slate-300 max-w-xl">
-            Description temporaire du site :)
-        </p>
-        <div class="flex flex-wrap gap-3 mt-4">
-            <a href="/artists" class="inline-flex items-center justify-center rounded-full bg-emerald-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-emerald-400 transition-colors">
-                View artists
-            </a>
+    <section class="space-y-8">
+        <style>
+            @keyframes marquee-left {
+                0% { transform: translateX(0); }
+                100% { transform: translateX(-50%); }
+            }
+            @keyframes marquee-right {
+                0% { transform: translateX(-50%); }
+                100% { transform: translateX(0); }
+            }
+            .marquee {
+                position: relative;
+                overflow: hidden;
+            }
+            .marquee::before,
+            .marquee::after {
+                content: "";
+                position: absolute;
+                top: 0;
+                bottom: 0;
+                width: 64px;
+                z-index: 10;
+                pointer-events: none;
+            }
+            .marquee::before {
+                left: 0;
+                background: linear-gradient(to right, rgb(2 6 23), transparent);
+            }
+            .marquee::after {
+                right: 0;
+                background: linear-gradient(to left, rgb(2 6 23), transparent);
+            }
+            .marquee-track {
+                display: flex;
+                width: max-content;
+                gap: 12px;
+                padding: 6px 0;
+            }
+            .marquee-left {
+                animation: marquee-left 26s linear infinite;
+            }
+            .marquee-right {
+                animation: marquee-right 30s linear infinite;
+            }
+            .marquee:hover .marquee-left,
+            .marquee:hover .marquee-right {
+                animation-play-state: paused;
+            }
+            @media (prefers-reduced-motion: reduce) {
+                .marquee-left,
+                .marquee-right {
+                    animation: none;
+                }
+            }
+        </style>
+
+        <div class="relative overflow-hidden rounded-2xl border border-slate-800 bg-gradient-to-b from-slate-900/60 to-slate-950 p-6">
+            <div class="absolute inset-0 pointer-events-none">
+                <div class="absolute -top-24 -left-24 h-64 w-64 rounded-full bg-emerald-500/10 blur-3xl"></div>
+                <div class="absolute -bottom-24 -right-24 h-64 w-64 rounded-full bg-sky-500/10 blur-3xl"></div>
+            </div>
+
+            <div class="relative space-y-4">
+                <div class="inline-flex items-center gap-2 rounded-full border border-slate-800 bg-slate-950/60 px-3 py-1 text-[11px] text-slate-300">
+                    <span class="h-1.5 w-1.5 rounded-full {{ if eq .Source "spotify" }}bg-emerald-400{{ else }}bg-slate-300{{ end }}"></span>
+                    <span>{{ if eq .Source "spotify" }}Spotify mode{{ else }}Groupie mode{{ end }}</span>
+                </div>
+
+                <h1 class="text-3xl md:text-4xl font-semibold tracking-tight">
+                    Pala's Groupie Tracker
+                </h1>
+
+                <p class="text-sm text-slate-300 max-w-2xl">
+                    Explore artists, discover popular tracks, and browse the latest releases with a clean interface. Switch sources anytime to compare Groupie data and Spotify results.
+                </p>
+
+                <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <a href="/artists?source={{ .Source }}" class="inline-flex items-center justify-center rounded-full bg-emerald-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-emerald-400 transition-colors">
+                        View artists
+                    </a>
+
+                    <div class="inline-flex rounded-full border border-slate-700 overflow-hidden bg-slate-950/60">
+                        <a href="/?source=groupie" class="px-4 py-2 text-xs font-medium {{ if ne .Source "spotify" }}bg-slate-700 text-white{{ else }}text-slate-300 hover:text-white{{ end }} transition-colors">
+                            Groupie
+                        </a>
+                        <a href="/?source=spotify" class="px-4 py-2 text-xs font-medium {{ if eq .Source "spotify" }}bg-emerald-500 text-slate-950{{ else }}text-slate-300 hover:text-white{{ end }} transition-colors">
+                            Spotify
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="space-y-3">
+            <div class="flex items-end justify-between gap-3">
+                <div>
+                    <h2 class="text-lg font-semibold">
+                        Featured artists
+                    </h2>
+                    <p class="text-xs text-slate-400">
+                        Hover to pause. Click a card to open the artist page.
+                    </p>
+                </div>
+                <a href="/artists?source={{ .Source }}" class="text-xs text-slate-300 hover:text-white transition-colors">
+                    See all →
+                </a>
+            </div>
+
+            <div class="marquee rounded-xl border border-slate-800 bg-slate-900/40 px-4">
+                <div class="marquee-track marquee-left">
+                    {{ range .Featured }}
+                        <a href="{{ .LinkURL }}" class="group w-[240px] shrink-0 rounded-xl border border-slate-800 bg-slate-950/70 p-3 hover:border-emerald-500/70 hover:bg-slate-950 transition-colors">
+                            <div class="flex items-center gap-3">
+                                <div class="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-slate-800 bg-slate-900">
+                                    {{ if .ImageURL }}
+                                        <img src="{{ .ImageURL }}" alt="{{ .Name }}" class="h-full w-full object-cover">
+                                    {{ else }}
+                                        <div class="h-full w-full bg-slate-900"></div>
+                                    {{ end }}
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <p class="text-sm font-semibold truncate group-hover:text-emerald-300 transition-colors">{{ .Name }}</p>
+                                        <span class="shrink-0 rounded-full border border-slate-800 bg-slate-900/60 px-2 py-0.5 text-[10px] text-slate-300">{{ .Badge }}</span>
+                                    </div>
+                                    <p class="text-xs text-slate-400 truncate">{{ .Meta }}</p>
+                                </div>
+                            </div>
+                        </a>
+                    {{ end }}
+                    {{ range .Featured }}
+                        <a aria-hidden="true" tabindex="-1" href="{{ .LinkURL }}" class="group w-[240px] shrink-0 rounded-xl border border-slate-800 bg-slate-950/70 p-3 hover:border-emerald-500/70 hover:bg-slate-950 transition-colors">
+                            <div class="flex items-center gap-3">
+                                <div class="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-slate-800 bg-slate-900">
+                                    {{ if .ImageURL }}
+                                        <img src="{{ .ImageURL }}" alt="{{ .Name }}" class="h-full w-full object-cover">
+                                    {{ else }}
+                                        <div class="h-full w-full bg-slate-900"></div>
+                                    {{ end }}
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <p class="text-sm font-semibold truncate group-hover:text-emerald-300 transition-colors">{{ .Name }}</p>
+                                        <span class="shrink-0 rounded-full border border-slate-800 bg-slate-900/60 px-2 py-0.5 text-[10px] text-slate-300">{{ .Badge }}</span>
+                                    </div>
+                                    <p class="text-xs text-slate-400 truncate">{{ .Meta }}</p>
+                                </div>
+                            </div>
+                        </a>
+                    {{ end }}
+                </div>
+            </div>
+
+            <div class="marquee rounded-xl border border-slate-800 bg-slate-900/30 px-4">
+                <div class="marquee-track marquee-right">
+                    {{ range .Featured }}
+                        <a href="{{ .LinkURL }}" class="group w-[240px] shrink-0 rounded-xl border border-slate-800 bg-slate-950/60 p-3 hover:border-emerald-500/70 hover:bg-slate-950 transition-colors">
+                            <div class="flex items-center gap-3">
+                                <div class="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-slate-800 bg-slate-900">
+                                    {{ if .ImageURL }}
+                                        <img src="{{ .ImageURL }}" alt="{{ .Name }}" class="h-full w-full object-cover">
+                                    {{ else }}
+                                        <div class="h-full w-full bg-slate-900"></div>
+                                    {{ end }}
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <p class="text-sm font-semibold truncate group-hover:text-emerald-300 transition-colors">{{ .Name }}</p>
+                                        <span class="shrink-0 rounded-full border border-slate-800 bg-slate-900/60 px-2 py-0.5 text-[10px] text-slate-300">{{ .Badge }}</span>
+                                    </div>
+                                    <p class="text-xs text-slate-400 truncate">{{ .Meta }}</p>
+                                </div>
+                            </div>
+                        </a>
+                    {{ end }}
+                    {{ range .Featured }}
+                        <a aria-hidden="true" tabindex="-1" href="{{ .LinkURL }}" class="group w-[240px] shrink-0 rounded-xl border border-slate-800 bg-slate-950/60 p-3 hover:border-emerald-500/70 hover:bg-slate-950 transition-colors">
+                            <div class="flex items-center gap-3">
+                                <div class="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-slate-800 bg-slate-900">
+                                    {{ if .ImageURL }}
+                                        <img src="{{ .ImageURL }}" alt="{{ .Name }}" class="h-full w-full object-cover">
+                                    {{ else }}
+                                        <div class="h-full w-full bg-slate-900"></div>
+                                    {{ end }}
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <p class="text-sm font-semibold truncate group-hover:text-emerald-300 transition-colors">{{ .Name }}</p>
+                                        <span class="shrink-0 rounded-full border border-slate-800 bg-slate-900/60 px-2 py-0.5 text-[10px] text-slate-300">{{ .Badge }}</span>
+                                    </div>
+                                    <p class="text-xs text-slate-400 truncate">{{ .Meta }}</p>
+                                </div>
+                            </div>
+                        </a>
+                    {{ end }}
+                </div>
+            </div>
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-3">
+            <div class="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
+                <h3 class="text-sm font-semibold">Fast browsing</h3>
+                <p class="text-xs text-slate-400 mt-1">
+                    Use search, filters, and sorting to find what you want quickly.
+                </p>
+            </div>
+            <div class="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
+                <h3 class="text-sm font-semibold">Clean details</h3>
+                <p class="text-xs text-slate-400 mt-1">
+                    Open artist pages for tracks, releases, and useful extra info.
+                </p>
+            </div>
+            <div class="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
+                <h3 class="text-sm font-semibold">Two data sources</h3>
+                <p class="text-xs text-slate-400 mt-1">
+                    Switch between Groupie and Spotify depending on what you need.
+                </p>
+            </div>
         </div>
     </section>
 {{ end }}
