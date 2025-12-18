@@ -22,7 +22,7 @@
                     <button
                             type="button"
                             data-target="groupie"
-                            class="px-3 py-1 {{ if ne .Source "spotify" }}bg-slate-700 text-white{{ else }}text-slate-300{{ end }}">
+                            class="px-3 py-1 {{ if and (ne .Source "spotify") (ne .Source "deezer") }}bg-slate-700 text-white{{ else }}text-slate-300{{ end }}">
                         Groupie
                     </button>
                     <button
@@ -30,6 +30,12 @@
                             data-target="spotify"
                             class="px-3 py-1 {{ if eq .Source "spotify" }}bg-emerald-500 text-slate-950{{ else }}text-slate-300{{ end }}">
                         Spotify
+                    </button>
+                    <button
+                            type="button"
+                            data-target="deezer"
+                            class="px-3 py-1 {{ if eq .Source "deezer" }}bg-sky-500 text-slate-950{{ else }}text-slate-300{{ end }}">
+                        Deezer
                     </button>
                 </div>
             </div>

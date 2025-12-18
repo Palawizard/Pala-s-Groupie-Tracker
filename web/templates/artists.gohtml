@@ -89,6 +89,10 @@
                     <p class="text-sm text-slate-300">
                         Search Spotify artists using the same interface.
                     </p>
+                {{ else if eq .Source "deezer" }}
+                    <p class="text-sm text-slate-300">
+                        Search Deezer artists using the same interface.
+                    </p>
                 {{ else }}
                     <p class="text-sm text-slate-300">
                         Search and filter artists from the Groupie Trackers API.
@@ -114,7 +118,7 @@
                 >
             </div>
 
-            {{ if ne .Source "spotify" }}
+            {{ if eq .Source "groupie" }}
                 <div class="grid gap-4 md:grid-cols-2">
                     <div>
                         <div class="flex items-center justify-between mb-2">
@@ -213,7 +217,7 @@
                         Reset
                     </a>
                 </div>
-            {{ else }}
+            {{ else if eq .Source "spotify" }}
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                     <div>
                         <label for="sort" class="block text-xs font-medium text-slate-300 mb-1">
@@ -251,6 +255,44 @@
                         </a>
                     </div>
                 </div>
+            {{ else if eq .Source "deezer" }}
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div>
+                        <label for="sort" class="block text-xs font-medium text-slate-300 mb-1">
+                            Sort
+                        </label>
+                        <select
+                                id="sort"
+                                name="sort"
+                                class="w-52 rounded-full border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-xs text-slate-100 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        >
+                            <option value="relevance" {{ if or (eq .Sort "") (eq .Sort "relevance") }}selected{{ end }}>
+                                Relevance (Deezer)
+                            </option>
+                            <option value="fans_desc" {{ if eq .Sort "fans_desc" }}selected{{ end }}>
+                                Fans ↓
+                            </option>
+                            <option value="fans_asc" {{ if eq .Sort "fans_asc" }}selected{{ end }}>
+                                Fans ↑
+                            </option>
+                            <option value="albums_desc" {{ if eq .Sort "albums_desc" }}selected{{ end }}>
+                                Albums ↓
+                            </option>
+                            <option value="albums_asc" {{ if eq .Sort "albums_asc" }}selected{{ end }}>
+                                Albums ↑
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="flex justify-end md:ml-auto">
+                        <a
+                                href="/artists?source=deezer"
+                                class="inline-flex items-center justify-center rounded-full border border-slate-700 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800/80 transition-colors"
+                        >
+                            Reset
+                        </a>
+                    </div>
+                </div>
             {{ end }}
         </form>
 
@@ -281,6 +323,32 @@
                             Genres: {{ index .Artist.Genres 0 }}
                         </p>
                     {{ end }}
+                </article>
+            </a>
+        {{ end }}
+    {{ else if eq .Source "deezer" }}
+        {{ range .Deezer }}
+            <a href="/artists/{{ .Artist.ID }}?source=deezer" class="block rounded-lg border border-slate-800 bg-slate-900/60 p-3 hover:border-emerald-500/70 hover:bg-slate-900 transition-colors">
+                <article class="flex flex-col gap-2">
+                    {{ if .Artist.PictureMedium }}
+                        <img src="{{ .Artist.PictureMedium }}" alt="{{ .Artist.Name }}" class="w-full h-40 object-cover rounded-md">
+                    {{ else if .Artist.Picture }}
+                        <img src="{{ .Artist.Picture }}" alt="{{ .Artist.Name }}" class="w-full h-40 object-cover rounded-md">
+                    {{ end }}
+                    <h2 class="text-base font-semibold">{{ .Artist.Name }}</h2>
+                    {{ if gt .Fans 0 }}
+                        <p class="text-xs text-slate-400">
+                            Fans: {{ .Fans }}
+                        </p>
+                    {{ end }}
+                    {{ if gt .Albums 0 }}
+                        <p class="text-xs text-slate-400">
+                            Albums: {{ .Albums }}
+                        </p>
+                    {{ end }}
+                    <p class="text-xs text-slate-400">
+                        Radio: {{ if .HasRadio }}Yes{{ else }}No{{ end }}
+                    </p>
                 </article>
             </a>
         {{ end }}
