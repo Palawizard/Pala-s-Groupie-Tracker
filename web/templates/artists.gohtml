@@ -93,6 +93,10 @@
                     <p class="text-sm text-slate-300">
                         Search Deezer artists using the same interface.
                     </p>
+                {{ else if eq .Source "apple" }}
+                    <p class="text-sm text-slate-300">
+                        Search Apple (iTunes) artists using the same interface.
+                    </p>
                 {{ else }}
                     <p class="text-sm text-slate-300">
                         Search and filter artists from the Groupie Trackers API.
@@ -112,7 +116,7 @@
                         id="q"
                         name="q"
                         type="text"
-                        placeholder="By artist name or member"
+                        placeholder="By artist name"
                         value="{{ .Query }}"
                         class="w-full rounded-full border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 >
@@ -293,6 +297,38 @@
                         </a>
                     </div>
                 </div>
+            {{ else if eq .Source "apple" }}
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div>
+                        <label for="sort" class="block text-xs font-medium text-slate-300 mb-1">
+                            Sort
+                        </label>
+                        <select
+                                id="sort"
+                                name="sort"
+                                class="w-52 rounded-full border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-xs text-slate-100 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        >
+                            <option value="relevance" {{ if or (eq .Sort "") (eq .Sort "relevance") }}selected{{ end }}>
+                                Relevance (iTunes)
+                            </option>
+                            <option value="name_asc" {{ if eq .Sort "name_asc" }}selected{{ end }}>
+                                Name A→Z
+                            </option>
+                            <option value="name_desc" {{ if eq .Sort "name_desc" }}selected{{ end }}>
+                                Name Z→A
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="flex justify-end md:ml-auto">
+                        <a
+                                href="/artists?source=apple"
+                                class="inline-flex items-center justify-center rounded-full border border-slate-700 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800/80 transition-colors"
+                        >
+                            Reset
+                        </a>
+                    </div>
+                </div>
             {{ end }}
         </form>
 
@@ -330,10 +366,10 @@
         {{ range .Deezer }}
             <a href="/artists/{{ .Artist.ID }}?source=deezer" class="block rounded-lg border border-slate-800 bg-slate-900/60 p-3 hover:border-emerald-500/70 hover:bg-slate-900 transition-colors">
                 <article class="flex flex-col gap-2">
-                    {{ if .Artist.PictureMedium }}
+                    {{ if .Artist.PictureBig }}
+                        <img src="{{ .Artist.PictureBig }}" alt="{{ .Artist.Name }}" class="w-full h-40 object-cover rounded-md">
+                    {{ else if .Artist.PictureMedium }}
                         <img src="{{ .Artist.PictureMedium }}" alt="{{ .Artist.Name }}" class="w-full h-40 object-cover rounded-md">
-                    {{ else if .Artist.Picture }}
-                        <img src="{{ .Artist.Picture }}" alt="{{ .Artist.Name }}" class="w-full h-40 object-cover rounded-md">
                     {{ end }}
                     <h2 class="text-base font-semibold">{{ .Artist.Name }}</h2>
                     {{ if gt .Fans 0 }}
@@ -346,9 +382,24 @@
                             Albums: {{ .Albums }}
                         </p>
                     {{ end }}
-                    <p class="text-xs text-slate-400">
-                        Radio: {{ if .HasRadio }}Yes{{ else }}No{{ end }}
-                    </p>
+                </article>
+            </a>
+        {{ end }}
+    {{ else if eq .Source "apple" }}
+        {{ range .Apple }}
+            <a href="/artists/{{ .Artist.ArtistID }}?source=apple" class="block rounded-lg border border-slate-800 bg-slate-900/60 p-3 hover:border-emerald-500/70 hover:bg-slate-900 transition-colors">
+                <article class="flex flex-col gap-2">
+                    {{ if .ImageURL }}
+                        <img src="{{ .ImageURL }}" alt="{{ .Artist.ArtistName }}" class="w-full h-40 object-cover rounded-md">
+                    {{ else }}
+                        <div class="w-full h-40 rounded-md border border-slate-800 bg-slate-950/60"></div>
+                    {{ end }}
+                    <h2 class="text-base font-semibold">{{ .Artist.ArtistName }}</h2>
+                    {{ if .Genre }}
+                        <p class="text-xs text-slate-400">
+                            Genre: {{ .Genre }}
+                        </p>
+                    {{ end }}
                 </article>
             </a>
         {{ end }}

@@ -63,8 +63,8 @@
 
             <div class="relative space-y-4">
                 <div class="inline-flex items-center gap-2 rounded-full border border-slate-800 bg-slate-950/60 px-3 py-1 text-[11px] text-slate-300">
-                    <span class="h-1.5 w-1.5 rounded-full {{ if eq .Source "spotify" }}bg-emerald-400{{ else if eq .Source "deezer" }}bg-sky-400{{ else }}bg-slate-300{{ end }}"></span>
-                    <span>{{ if eq .Source "spotify" }}Spotify mode{{ else if eq .Source "deezer" }}Deezer mode{{ else }}Groupie mode{{ end }}</span>
+                    <span class="h-1.5 w-1.5 rounded-full {{ if eq .Source "spotify" }}bg-emerald-400{{ else if eq .Source "deezer" }}bg-sky-400{{ else if eq .Source "apple" }}bg-slate-200{{ else }}bg-slate-300{{ end }}"></span>
+                    <span>{{ if eq .Source "spotify" }}Spotify mode{{ else if eq .Source "deezer" }}Deezer mode{{ else if eq .Source "apple" }}Apple mode{{ else }}Groupie mode{{ end }}</span>
                 </div>
 
                 <h1 class="text-3xl md:text-4xl font-semibold tracking-tight">
@@ -72,7 +72,7 @@
                 </h1>
 
                 <p class="text-sm text-slate-300 max-w-2xl">
-                    Explore artists, discover popular tracks, and browse the latest releases with a clean interface. Switch sources anytime to compare Groupie data, Spotify results, and Deezer results.
+                    Explore artists, discover popular tracks, and browse the latest releases with a clean interface. Switch sources anytime to compare Groupie data, Spotify results, Deezer results, and Apple (iTunes) results.
                 </p>
 
                 <div class="flex flex-col sm:flex-row sm:items-center gap-3">
@@ -81,7 +81,7 @@
                     </a>
 
                     <div class="inline-flex rounded-full border border-slate-700 overflow-hidden bg-slate-950/60">
-                        <a href="/?source=groupie" class="px-4 py-2 text-xs font-medium {{ if and (ne .Source "spotify") (ne .Source "deezer") }}bg-slate-700 text-white{{ else }}text-slate-300 hover:text-white{{ end }} transition-colors">
+                        <a href="/?source=groupie" class="px-4 py-2 text-xs font-medium {{ if and (ne .Source "spotify") (ne .Source "deezer") (ne .Source "apple") }}bg-slate-700 text-white{{ else }}text-slate-300 hover:text-white{{ end }} transition-colors">
                             Groupie
                         </a>
                         <a href="/?source=spotify" class="px-4 py-2 text-xs font-medium {{ if eq .Source "spotify" }}bg-emerald-500 text-slate-950{{ else }}text-slate-300 hover:text-white{{ end }} transition-colors">
@@ -89,6 +89,9 @@
                         </a>
                         <a href="/?source=deezer" class="px-4 py-2 text-xs font-medium {{ if eq .Source "deezer" }}bg-sky-500 text-slate-950{{ else }}text-slate-300 hover:text-white{{ end }} transition-colors">
                             Deezer
+                        </a>
+                        <a href="/?source=apple" class="px-4 py-2 text-xs font-medium {{ if eq .Source "apple" }}bg-slate-200 text-slate-950{{ else }}text-slate-300 hover:text-white{{ end }} transition-colors">
+                            Apple
                         </a>
                     </div>
                 </div>
@@ -215,9 +218,9 @@
                 </p>
             </div>
             <div class="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
-                <h3 class="text-sm font-semibold">Three data sources</h3>
+                <h3 class="text-sm font-semibold">Multiple sources</h3>
                 <p class="text-xs text-slate-400 mt-1">
-                    Switch between Groupie, Spotify, and Deezer depending on what you need.
+                    Switch between Groupie, Spotify, Deezer, and Apple (iTunes) depending on what you need.
                 </p>
             </div>
         </div>

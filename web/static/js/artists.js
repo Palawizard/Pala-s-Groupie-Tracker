@@ -23,13 +23,13 @@
         try {
             var url = new URL(window.location.href);
             var s = (url.searchParams.get("source") || "").trim().toLowerCase();
-            if (s === "spotify" || s === "deezer" || s === "groupie") return s;
+            if (s === "spotify" || s === "deezer" || s === "apple" || s === "groupie") return s;
         } catch (e) {
         }
 
         var sourceInput = document.getElementById("source");
         var v = sourceInput ? String(sourceInput.value || "").trim().toLowerCase() : "";
-        if (v === "spotify" || v === "deezer") return v;
+        if (v === "spotify" || v === "deezer" || v === "apple") return v;
         return "groupie";
     }
 
@@ -114,6 +114,7 @@
 
         var params = new URLSearchParams();
         var formData = new FormData(form);
+
         formData.forEach(function (value, key) {
             if (value !== "") {
                 params.append(key, value.toString());

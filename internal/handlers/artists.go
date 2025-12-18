@@ -24,12 +24,19 @@ type DeezerArtistView struct {
 	HasRadio bool
 }
 
+type AppleArtistView struct {
+	Artist   api.AppleArtist
+	ImageURL string
+	Genre    string
+}
+
 type ArtistsPageData struct {
 	Title           string
 	Source          string
 	Artists         []api.Artist
 	Spotify         []SpotifyArtistView
 	Deezer          []DeezerArtistView
+	Apple           []AppleArtistView
 	Query           string
 	YearMin         string
 	YearMax         string
@@ -57,6 +64,8 @@ func ArtistsHandler(w http.ResponseWriter, r *http.Request) {
 		data, err = buildSpotifyData(r)
 	} else if source == "deezer" {
 		data, err = buildDeezerData(r)
+	} else if source == "apple" {
+		data, err = buildAppleData(r)
 	} else {
 		data, err = buildGroupieData(r)
 	}
@@ -91,6 +100,8 @@ func ArtistsAjaxHandler(w http.ResponseWriter, r *http.Request) {
 		data, err = buildSpotifyData(r)
 	} else if source == "deezer" {
 		data, err = buildDeezerData(r)
+	} else if source == "apple" {
+		data, err = buildAppleData(r)
 	} else {
 		data, err = buildGroupieData(r)
 	}
@@ -271,16 +282,8 @@ func buildSpotifyData(r *http.Request) (ArtistsPageData, error) {
 
 	wg.Wait()
 
-	isDefaultQuery := strings.TrimSpace(r.URL.Query().Get("q")) == ""
-
-	if isDefaultQuery {
-		if sortParam == "" {
-			sortParam = "relevance"
-		}
-	} else {
-		if sortParam == "" {
-			sortParam = "relevance"
-		}
+	if sortParam == "" {
+		sortParam = "relevance"
 	}
 
 	switch sortParam {
@@ -368,6 +371,56 @@ func buildDeezerData(r *http.Request) (ArtistsPageData, error) {
 		Title:     "Artists",
 		Source:    "deezer",
 		Deezer:    views,
+		Query:     strings.TrimSpace(r.URL.Query().Get("q")),
+		Sort:      sortParam,
+		ActiveNav: "artists",
+	}
+
+	return data, nil
+}
+
+func buildAppleData(r *http.Request) (ArtistsPageData, error) {
+	query := strings.TrimSpace(r.URL.Query().Get("q"))
+	sortParam := strings.TrimSpace(r.URL.Query().Get("sort"))
+
+	if query == "" {
+		query = "a"
+	}
+
+	results, err := api.SearchAppleArtistsWithArtwork(query, 30, 300)
+	if err != nil {
+		return ArtistsPageData{}, err
+	}
+
+	views := make([]AppleArtistView, len(results))
+	for i, a := range results {
+		views[i].Artist = a.Artist
+		views[i].Genre = a.Artist.PrimaryGenreName
+		views[i].ImageURL = a.ArtworkURL
+	}
+
+	if sortParam == "" {
+		sortParam = "relevance"
+	}
+
+	switch sortParam {
+	case "name_asc":
+		sort.Slice(views, func(i, j int) bool {
+			return strings.ToLower(views[i].Artist.ArtistName) < strings.ToLower(views[j].Artist.ArtistName)
+		})
+	case "name_desc":
+		sort.Slice(views, func(i, j int) bool {
+			return strings.ToLower(views[i].Artist.ArtistName) > strings.ToLower(views[j].Artist.ArtistName)
+		})
+	case "relevance":
+	default:
+		sortParam = "relevance"
+	}
+
+	data := ArtistsPageData{
+		Title:     "Artists",
+		Source:    "apple",
+		Apple:     views,
 		Query:     strings.TrimSpace(r.URL.Query().Get("q")),
 		Sort:      sortParam,
 		ActiveNav: "artists",
