@@ -10,5 +10,8 @@ func getSource(r *http.Request) string {
 	if source == "deezer" {
 		return "deezer"
 	}
+	if source == "apple" {
+		return "apple"
+	}
 	return "groupie"
 }
