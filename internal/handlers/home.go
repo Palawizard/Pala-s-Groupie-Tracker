@@ -141,6 +141,37 @@ func buildHomeFeatured(source string) ([]HomeArtistCard, error) {
 		return out, nil
 	}
 
+	if source == "apple" {
+		artists, err := api.SearchAppleArtistsWithArtwork("a", desired, 300)
+		if err != nil {
+			return nil, err
+		}
+
+		limit := desired
+		if len(artists) < limit {
+			limit = len(artists)
+		}
+
+		out := make([]HomeArtistCard, 0, limit)
+		for i := 0; i < limit; i++ {
+			a := artists[i].Artist
+			meta := "Apple artist"
+			if a.PrimaryGenreName != "" {
+				meta = a.PrimaryGenreName
+			}
+
+			out = append(out, HomeArtistCard{
+				Name:     a.ArtistName,
+				ImageURL: artists[i].ArtworkURL,
+				LinkURL:  "/artists/" + strconv.Itoa(a.ArtistID) + "?source=apple",
+				Meta:     meta,
+				Badge:    "Apple",
+			})
+		}
+
+		return out, nil
+	}
+
 	artists, err := api.FetchArtists()
 	if err != nil {
 		return nil, err

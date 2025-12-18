@@ -22,27 +22,37 @@ type MapLocation struct {
 }
 
 type ArtistDetailPageData struct {
-	Title                   string
-	Source                  string
-	ActiveNav               string
-	Artist                  *api.Artist
+	Title     string
+	Source    string
+	ActiveNav string
+	Artist    *api.Artist
+
 	SpotifyArtist           *api.SpotifyArtist
 	SpotifyGenre            string
 	SpotifyFollowers        int
 	SpotifyMonthlyListeners int
 	SpotifyTopTracks        []api.SpotifyTrack
 	SpotifyLatestAlbums     []api.SpotifyAlbum
-	DeezerArtist            *api.DeezerArtist
-	DeezerFans              int
-	DeezerAlbumsCount       int
-	DeezerHasRadio          bool
-	DeezerMonthlyListeners  int
-	DeezerTopTracks         []api.DeezerTrack
-	DeezerLatestAlbums      []api.DeezerAlbum
-	LocationsJSON           template.JS
-	WikiSummary             string
-	WikiURL                 string
-	HasWiki                 bool
+
+	DeezerArtist           *api.DeezerArtist
+	DeezerFans             int
+	DeezerAlbumsCount      int
+	DeezerHasRadio         bool
+	DeezerMonthlyListeners int
+	DeezerTopTracks        []api.DeezerTrack
+	DeezerLatestAlbums     []api.DeezerAlbum
+
+	AppleArtist           *api.AppleArtist
+	AppleGenre            string
+	AppleMonthlyListeners int
+	AppleHeroImage        string
+	AppleTopTracks        []api.AppleTrack
+	AppleLatestAlbums     []api.AppleAlbum
+
+	LocationsJSON template.JS
+	WikiSummary   string
+	WikiURL       string
+	HasWiki       bool
 }
 
 func ArtistDetailHandler(w http.ResponseWriter, r *http.Request) {
@@ -55,6 +65,10 @@ func ArtistDetailHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if source == "deezer" {
 		handleDeezerArtistDetail(w, r, idSegment)
+		return
+	}
+	if source == "apple" {
+		handleAppleArtistDetail(w, r, idSegment)
 		return
 	}
 
@@ -113,27 +127,37 @@ func handleGroupieArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 	}
 
 	data := ArtistDetailPageData{
-		Title:                   artist.Name,
-		Source:                  "groupie",
-		ActiveNav:               "artists",
-		Artist:                  artist,
+		Title:     artist.Name,
+		Source:    "groupie",
+		ActiveNav: "artists",
+		Artist:    artist,
+
 		SpotifyArtist:           nil,
 		SpotifyGenre:            "",
 		SpotifyFollowers:        0,
 		SpotifyMonthlyListeners: 0,
 		SpotifyTopTracks:        nil,
 		SpotifyLatestAlbums:     nil,
-		DeezerArtist:            nil,
-		DeezerFans:              0,
-		DeezerAlbumsCount:       0,
-		DeezerHasRadio:          false,
-		DeezerMonthlyListeners:  0,
-		DeezerTopTracks:         nil,
-		DeezerLatestAlbums:      nil,
-		LocationsJSON:           template.JS(locBytes),
-		WikiSummary:             wikiSummary,
-		WikiURL:                 wikiURL,
-		HasWiki:                 hasWiki,
+
+		DeezerArtist:           nil,
+		DeezerFans:             0,
+		DeezerAlbumsCount:      0,
+		DeezerHasRadio:         false,
+		DeezerMonthlyListeners: 0,
+		DeezerTopTracks:        nil,
+		DeezerLatestAlbums:     nil,
+
+		AppleArtist:           nil,
+		AppleGenre:            "",
+		AppleMonthlyListeners: 0,
+		AppleHeroImage:        "",
+		AppleTopTracks:        nil,
+		AppleLatestAlbums:     nil,
+
+		LocationsJSON: template.JS(locBytes),
+		WikiSummary:   wikiSummary,
+		WikiURL:       wikiURL,
+		HasWiki:       hasWiki,
 	}
 
 	if err := tmpl.ExecuteTemplate(w, "layout", data); err != nil {
@@ -228,27 +252,37 @@ func handleSpotifyArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 	}
 
 	data := ArtistDetailPageData{
-		Title:                   artist.Name,
-		Source:                  "spotify",
-		ActiveNav:               "artists",
-		Artist:                  nil,
+		Title:     artist.Name,
+		Source:    "spotify",
+		ActiveNav: "artists",
+		Artist:    nil,
+
 		SpotifyArtist:           artist,
 		SpotifyGenre:            genre,
 		SpotifyFollowers:        followers,
 		SpotifyMonthlyListeners: listeners,
 		SpotifyTopTracks:        topTracks,
 		SpotifyLatestAlbums:     latestAlbums,
-		DeezerArtist:            nil,
-		DeezerFans:              0,
-		DeezerAlbumsCount:       0,
-		DeezerHasRadio:          false,
-		DeezerMonthlyListeners:  0,
-		DeezerTopTracks:         nil,
-		DeezerLatestAlbums:      nil,
-		LocationsJSON:           template.JS(emptyLocations),
-		WikiSummary:             wikiSummary,
-		WikiURL:                 wikiURL,
-		HasWiki:                 hasWiki,
+
+		DeezerArtist:           nil,
+		DeezerFans:             0,
+		DeezerAlbumsCount:      0,
+		DeezerHasRadio:         false,
+		DeezerMonthlyListeners: 0,
+		DeezerTopTracks:        nil,
+		DeezerLatestAlbums:     nil,
+
+		AppleArtist:           nil,
+		AppleGenre:            "",
+		AppleMonthlyListeners: 0,
+		AppleHeroImage:        "",
+		AppleTopTracks:        nil,
+		AppleLatestAlbums:     nil,
+
+		LocationsJSON: template.JS(emptyLocations),
+		WikiSummary:   wikiSummary,
+		WikiURL:       wikiURL,
+		HasWiki:       hasWiki,
 	}
 
 	if err := tmpl.ExecuteTemplate(w, "layout", data); err != nil {
@@ -330,33 +364,160 @@ func handleDeezerArtistDetail(w http.ResponseWriter, r *http.Request, idSegment 
 	}
 
 	data := ArtistDetailPageData{
-		Title:                   artist.Name,
-		Source:                  "deezer",
-		ActiveNav:               "artists",
-		Artist:                  nil,
+		Title:     artist.Name,
+		Source:    "deezer",
+		ActiveNav: "artists",
+		Artist:    nil,
+
 		SpotifyArtist:           nil,
 		SpotifyGenre:            "",
 		SpotifyFollowers:        0,
 		SpotifyMonthlyListeners: 0,
 		SpotifyTopTracks:        nil,
 		SpotifyLatestAlbums:     nil,
-		DeezerArtist:            artist,
-		DeezerFans:              artist.NbFan,
-		DeezerAlbumsCount:       artist.NbAlbum,
-		DeezerHasRadio:          artist.Radio,
-		DeezerMonthlyListeners:  monthly,
-		DeezerTopTracks:         topTracks,
-		DeezerLatestAlbums:      latestAlbums,
-		LocationsJSON:           template.JS(emptyLocations),
-		WikiSummary:             wikiSummary,
-		WikiURL:                 wikiURL,
-		HasWiki:                 hasWiki,
+
+		DeezerArtist:           artist,
+		DeezerFans:             artist.NbFan,
+		DeezerAlbumsCount:      artist.NbAlbum,
+		DeezerHasRadio:         artist.Radio,
+		DeezerMonthlyListeners: monthly,
+		DeezerTopTracks:        topTracks,
+		DeezerLatestAlbums:     latestAlbums,
+
+		AppleArtist:           nil,
+		AppleGenre:            "",
+		AppleMonthlyListeners: 0,
+		AppleHeroImage:        "",
+		AppleTopTracks:        nil,
+		AppleLatestAlbums:     nil,
+
+		LocationsJSON: template.JS(emptyLocations),
+		WikiSummary:   wikiSummary,
+		WikiURL:       wikiURL,
+		HasWiki:       hasWiki,
 	}
 
 	if err := tmpl.ExecuteTemplate(w, "layout", data); err != nil {
 		http.Error(w, "render error", http.StatusInternalServerError)
 		return
 	}
+}
+
+func handleAppleArtistDetail(w http.ResponseWriter, r *http.Request, idSegment string) {
+	id, err := strconv.Atoi(idSegment)
+	if err != nil || id <= 0 {
+		NotFound(w, r)
+		return
+	}
+
+	artist, err := api.GetAppleArtist(id)
+	if err != nil {
+		if isNotFoundError(err) {
+			NotFound(w, r)
+			return
+		}
+		http.Error(w, "failed to load apple artist", http.StatusInternalServerError)
+		return
+	}
+
+	emptyLocations, err := json.Marshal([]MapLocation{})
+	if err != nil {
+		http.Error(w, "failed to encode concerts", http.StatusInternalServerError)
+		return
+	}
+
+	wikiSummary, wikiURL, wikiErr := api.FetchWikipediaSummary(artist.ArtistName)
+	hasWiki := wikiErr == nil && wikiSummary != "" && wikiURL != ""
+
+	monthly, err := api.FetchArtistMonthlyListeners(artist.ArtistName)
+	if err != nil {
+		monthly = 0
+	}
+
+	latestAlbums, err := api.GetAppleArtistAlbums(artist.ArtistID, 8)
+	if err != nil {
+		latestAlbums = nil
+	}
+
+	topTracks, err := api.GetAppleArtistSongs(artist.ArtistID, 10)
+	if err != nil {
+		topTracks = nil
+	}
+
+	hero := ""
+	if len(latestAlbums) > 0 {
+		hero = upscaleAppleArtwork(latestAlbums[0].ArtworkURL100, 600)
+	}
+	if hero == "" && len(topTracks) > 0 {
+		hero = upscaleAppleArtwork(topTracks[0].ArtworkURL100, 600)
+	}
+
+	tmpl, err := template.ParseFiles(
+		"web/templates/layout.gohtml",
+		"web/templates/artist_detail.gohtml",
+	)
+	if err != nil {
+		http.Error(w, "template error", http.StatusInternalServerError)
+		return
+	}
+
+	data := ArtistDetailPageData{
+		Title:     artist.ArtistName,
+		Source:    "apple",
+		ActiveNav: "artists",
+		Artist:    nil,
+
+		SpotifyArtist:           nil,
+		SpotifyGenre:            "",
+		SpotifyFollowers:        0,
+		SpotifyMonthlyListeners: 0,
+		SpotifyTopTracks:        nil,
+		SpotifyLatestAlbums:     nil,
+
+		DeezerArtist:           nil,
+		DeezerFans:             0,
+		DeezerAlbumsCount:      0,
+		DeezerHasRadio:         false,
+		DeezerMonthlyListeners: 0,
+		DeezerTopTracks:        nil,
+		DeezerLatestAlbums:     nil,
+
+		AppleArtist:           artist,
+		AppleGenre:            artist.PrimaryGenreName,
+		AppleMonthlyListeners: monthly,
+		AppleHeroImage:        hero,
+		AppleTopTracks:        topTracks,
+		AppleLatestAlbums:     latestAlbums,
+
+		LocationsJSON: template.JS(emptyLocations),
+		WikiSummary:   wikiSummary,
+		WikiURL:       wikiURL,
+		HasWiki:       hasWiki,
+	}
+
+	if err := tmpl.ExecuteTemplate(w, "layout", data); err != nil {
+		http.Error(w, "render error", http.StatusInternalServerError)
+		return
+	}
+}
+
+func upscaleAppleArtwork(u string, size int) string {
+	u = strings.TrimSpace(u)
+	if u == "" || size <= 0 {
+		return ""
+	}
+
+	target := strconv.Itoa(size) + "x" + strconv.Itoa(size) + "bb.jpg"
+	parts := strings.Split(u, "/")
+	if len(parts) == 0 {
+		return u
+	}
+	last := parts[len(parts)-1]
+	if strings.Contains(last, "x") && strings.HasSuffix(last, "bb.jpg") {
+		parts[len(parts)-1] = target
+		return strings.Join(parts, "/")
+	}
+	return u
 }
 
 func parseSpotifyReleaseDate(s string) (time.Time, bool) {
@@ -380,10 +541,7 @@ func parseSpotifyReleaseDate(s string) (time.Time, bool) {
 
 func parseDeezerReleaseDate(s string) (time.Time, bool) {
 	s = strings.TrimSpace(s)
-	if s == "" {
-		return time.Time{}, false
-	}
-	if s == "0000-00-00" {
+	if s == "" || s == "0000-00-00" {
 		return time.Time{}, false
 	}
 	if t, err := time.Parse("2006-01-02", s); err == nil {

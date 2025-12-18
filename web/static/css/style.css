@@ -757,6 +757,10 @@ video {
   max-width: 140px;
 }
 
+.max-w-\[160px\] {
+  max-width: 160px;
+}
+
 .max-w-xl {
   max-width: 36rem;
 }
@@ -958,6 +962,11 @@ video {
 
 .bg-sky-500\/10 {
   background-color: rgb(14 165 233 / 0.1);
+}
+
+.bg-slate-200 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(226 232 240 / var(--tw-bg-opacity, 1));
 }
 
 .bg-slate-300 {
