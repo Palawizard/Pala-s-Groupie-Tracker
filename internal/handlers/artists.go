@@ -17,11 +17,19 @@ type SpotifyArtistView struct {
 	MonthlyListeners int
 }
 
+type DeezerArtistView struct {
+	Artist   api.DeezerArtist
+	Fans     int
+	Albums   int
+	HasRadio bool
+}
+
 type ArtistsPageData struct {
 	Title           string
 	Source          string
 	Artists         []api.Artist
 	Spotify         []SpotifyArtistView
+	Deezer          []DeezerArtistView
 	Query           string
 	YearMin         string
 	YearMax         string
@@ -47,6 +55,8 @@ func ArtistsHandler(w http.ResponseWriter, r *http.Request) {
 
 	if source == "spotify" {
 		data, err = buildSpotifyData(r)
+	} else if source == "deezer" {
+		data, err = buildDeezerData(r)
 	} else {
 		data, err = buildGroupieData(r)
 	}
@@ -79,6 +89,8 @@ func ArtistsAjaxHandler(w http.ResponseWriter, r *http.Request) {
 
 	if source == "spotify" {
 		data, err = buildSpotifyData(r)
+	} else if source == "deezer" {
+		data, err = buildDeezerData(r)
 	} else {
 		data, err = buildGroupieData(r)
 	}
@@ -297,6 +309,65 @@ func buildSpotifyData(r *http.Request) (ArtistsPageData, error) {
 		Title:     "Artists",
 		Source:    "spotify",
 		Spotify:   views,
+		Query:     strings.TrimSpace(r.URL.Query().Get("q")),
+		Sort:      sortParam,
+		ActiveNav: "artists",
+	}
+
+	return data, nil
+}
+
+func buildDeezerData(r *http.Request) (ArtistsPageData, error) {
+	query := strings.TrimSpace(r.URL.Query().Get("q"))
+	sortParam := strings.TrimSpace(r.URL.Query().Get("sort"))
+
+	if query == "" {
+		query = "a"
+	}
+
+	results, err := api.SearchDeezerArtists(query)
+	if err != nil {
+		return ArtistsPageData{}, err
+	}
+
+	views := make([]DeezerArtistView, len(results))
+	for i, a := range results {
+		views[i].Artist = a
+		views[i].Fans = a.NbFan
+		views[i].Albums = a.NbAlbum
+		views[i].HasRadio = a.Radio
+	}
+
+	if sortParam == "" {
+		sortParam = "relevance"
+	}
+
+	switch sortParam {
+	case "fans_asc":
+		sort.Slice(views, func(i, j int) bool {
+			return views[i].Fans < views[j].Fans
+		})
+	case "fans_desc":
+		sort.Slice(views, func(i, j int) bool {
+			return views[i].Fans > views[j].Fans
+		})
+	case "albums_asc":
+		sort.Slice(views, func(i, j int) bool {
+			return views[i].Albums < views[j].Albums
+		})
+	case "albums_desc":
+		sort.Slice(views, func(i, j int) bool {
+			return views[i].Albums > views[j].Albums
+		})
+	case "relevance":
+	default:
+		sortParam = "relevance"
+	}
+
+	data := ArtistsPageData{
+		Title:     "Artists",
+		Source:    "deezer",
+		Deezer:    views,
 		Query:     strings.TrimSpace(r.URL.Query().Get("q")),
 		Sort:      sortParam,
 		ActiveNav: "artists",

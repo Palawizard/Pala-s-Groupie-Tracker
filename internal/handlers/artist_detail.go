@@ -32,6 +32,13 @@ type ArtistDetailPageData struct {
 	SpotifyMonthlyListeners int
 	SpotifyTopTracks        []api.SpotifyTrack
 	SpotifyLatestAlbums     []api.SpotifyAlbum
+	DeezerArtist            *api.DeezerArtist
+	DeezerFans              int
+	DeezerAlbumsCount       int
+	DeezerHasRadio          bool
+	DeezerMonthlyListeners  int
+	DeezerTopTracks         []api.DeezerTrack
+	DeezerLatestAlbums      []api.DeezerAlbum
 	LocationsJSON           template.JS
 	WikiSummary             string
 	WikiURL                 string
@@ -44,6 +51,10 @@ func ArtistDetailHandler(w http.ResponseWriter, r *http.Request) {
 
 	if source == "spotify" {
 		handleSpotifyArtistDetail(w, r, idSegment)
+		return
+	}
+	if source == "deezer" {
+		handleDeezerArtistDetail(w, r, idSegment)
 		return
 	}
 
@@ -112,6 +123,13 @@ func handleGroupieArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 		SpotifyMonthlyListeners: 0,
 		SpotifyTopTracks:        nil,
 		SpotifyLatestAlbums:     nil,
+		DeezerArtist:            nil,
+		DeezerFans:              0,
+		DeezerAlbumsCount:       0,
+		DeezerHasRadio:          false,
+		DeezerMonthlyListeners:  0,
+		DeezerTopTracks:         nil,
+		DeezerLatestAlbums:      nil,
 		LocationsJSON:           template.JS(locBytes),
 		WikiSummary:             wikiSummary,
 		WikiURL:                 wikiURL,
@@ -220,6 +238,115 @@ func handleSpotifyArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 		SpotifyMonthlyListeners: listeners,
 		SpotifyTopTracks:        topTracks,
 		SpotifyLatestAlbums:     latestAlbums,
+		DeezerArtist:            nil,
+		DeezerFans:              0,
+		DeezerAlbumsCount:       0,
+		DeezerHasRadio:          false,
+		DeezerMonthlyListeners:  0,
+		DeezerTopTracks:         nil,
+		DeezerLatestAlbums:      nil,
+		LocationsJSON:           template.JS(emptyLocations),
+		WikiSummary:             wikiSummary,
+		WikiURL:                 wikiURL,
+		HasWiki:                 hasWiki,
+	}
+
+	if err := tmpl.ExecuteTemplate(w, "layout", data); err != nil {
+		http.Error(w, "render error", http.StatusInternalServerError)
+		return
+	}
+}
+
+func handleDeezerArtistDetail(w http.ResponseWriter, r *http.Request, idSegment string) {
+	id, err := strconv.Atoi(idSegment)
+	if err != nil || id <= 0 {
+		NotFound(w, r)
+		return
+	}
+
+	artist, err := api.GetDeezerArtist(id)
+	if err != nil {
+		if isNotFoundError(err) {
+			NotFound(w, r)
+			return
+		}
+		http.Error(w, "failed to load deezer artist", http.StatusInternalServerError)
+		return
+	}
+
+	emptyLocations, err := json.Marshal([]MapLocation{})
+	if err != nil {
+		http.Error(w, "failed to encode concerts", http.StatusInternalServerError)
+		return
+	}
+
+	wikiSummary, wikiURL, wikiErr := api.FetchWikipediaSummary(artist.Name)
+	hasWiki := wikiErr == nil && wikiSummary != "" && wikiURL != ""
+
+	monthly, err := api.FetchArtistMonthlyListeners(artist.Name)
+	if err != nil {
+		monthly = 0
+	}
+
+	topTracks, err := api.GetDeezerArtistTopTracks(artist.ID, 10)
+	if err != nil {
+		topTracks = nil
+	}
+
+	latestAlbums, err := api.GetDeezerArtistAlbums(artist.ID, 8)
+	if err != nil {
+		latestAlbums = nil
+	}
+
+	if len(latestAlbums) > 1 {
+		sort.SliceStable(latestAlbums, func(i, j int) bool {
+			di, okI := parseDeezerReleaseDate(latestAlbums[i].ReleaseDate)
+			dj, okJ := parseDeezerReleaseDate(latestAlbums[j].ReleaseDate)
+
+			if okI && okJ && !di.Equal(dj) {
+				return di.After(dj)
+			}
+			if okI != okJ {
+				return okI
+			}
+
+			ni := strings.ToLower(latestAlbums[i].Title)
+			nj := strings.ToLower(latestAlbums[j].Title)
+			if ni != nj {
+				return ni < nj
+			}
+
+			return latestAlbums[i].ID < latestAlbums[j].ID
+		})
+	}
+
+	tmpl, err := template.ParseFiles(
+		"web/templates/layout.gohtml",
+		"web/templates/artist_detail.gohtml",
+	)
+	if err != nil {
+		http.Error(w, "template error", http.StatusInternalServerError)
+		return
+	}
+
+	data := ArtistDetailPageData{
+		Title:                   artist.Name,
+		Source:                  "deezer",
+		ActiveNav:               "artists",
+		Artist:                  nil,
+		SpotifyArtist:           nil,
+		SpotifyGenre:            "",
+		SpotifyFollowers:        0,
+		SpotifyMonthlyListeners: 0,
+		SpotifyTopTracks:        nil,
+		SpotifyLatestAlbums:     nil,
+		DeezerArtist:            artist,
+		DeezerFans:              artist.NbFan,
+		DeezerAlbumsCount:       artist.NbAlbum,
+		DeezerHasRadio:          artist.Radio,
+		DeezerMonthlyListeners:  monthly,
+		DeezerTopTracks:         topTracks,
+		DeezerLatestAlbums:      latestAlbums,
 		LocationsJSON:           template.JS(emptyLocations),
 		WikiSummary:             wikiSummary,
 		WikiURL:                 wikiURL,
@@ -248,6 +375,20 @@ func parseSpotifyReleaseDate(s string) (time.Time, bool) {
 		return time.Date(t.Year(), time.January, 1, 0, 0, 0, 0, time.UTC), true
 	}
 
+	return time.Time{}, false
+}
+
+func parseDeezerReleaseDate(s string) (time.Time, bool) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return time.Time{}, false
+	}
+	if s == "0000-00-00" {
+		return time.Time{}, false
+	}
+	if t, err := time.Parse("2006-01-02", s); err == nil {
+		return t, true
+	}
 	return time.Time{}, false
 }
 

@@ -1,10 +1,8 @@
 (function () {
     var form = document.getElementById("artist-filters");
     var list = document.getElementById("artist-list");
-    var sourceInput = document.getElementById("source");
-    if (!form || !list || !sourceInput) return;
+    if (!form || !list) return;
 
-    var currentSource = sourceInput.value === "spotify" ? "spotify" : "groupie";
     var inputs = form.querySelectorAll("input, select");
     var timeoutId;
 
@@ -20,6 +18,20 @@
 
     var yearFill = document.getElementById("year_fill");
     var membersFill = document.getElementById("members_fill");
+
+    function getCurrentSource() {
+        try {
+            var url = new URL(window.location.href);
+            var s = (url.searchParams.get("source") || "").trim().toLowerCase();
+            if (s === "spotify" || s === "deezer" || s === "groupie") return s;
+        } catch (e) {
+        }
+
+        var sourceInput = document.getElementById("source");
+        var v = sourceInput ? String(sourceInput.value || "").trim().toLowerCase() : "";
+        if (v === "spotify" || v === "deezer") return v;
+        return "groupie";
+    }
 
     function toInt(v) {
         var n = parseInt(v, 10);
@@ -92,7 +104,7 @@
     }
 
     function normalizeRanges() {
-        if (currentSource !== "groupie") return;
+        if (getCurrentSource() !== "groupie") return;
         clampPair(yearMin, yearMax, yearMinOut, yearMaxOut, yearFill);
         clampPair(membersMin, membersMax, membersMinOut, membersMaxOut, membersFill);
     }
@@ -107,7 +119,8 @@
                 params.append(key, value.toString());
             }
         });
-        params.set("source", currentSource);
+
+        params.set("source", getCurrentSource());
         return params.toString();
     }
 

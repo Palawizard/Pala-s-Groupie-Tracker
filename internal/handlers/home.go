@@ -97,6 +97,50 @@ func buildHomeFeatured(source string) ([]HomeArtistCard, error) {
 		return out, nil
 	}
 
+	if source == "deezer" {
+		artists, err := api.SearchDeezerArtists("a")
+		if err != nil {
+			return nil, err
+		}
+
+		limit := desired
+		if len(artists) < limit {
+			limit = len(artists)
+		}
+
+		out := make([]HomeArtistCard, 0, limit)
+		for i := 0; i < limit; i++ {
+			a := artists[i]
+			imageURL := a.PictureXL
+			if imageURL == "" {
+				imageURL = a.PictureBig
+			}
+			if imageURL == "" {
+				imageURL = a.PictureMedium
+			}
+			if imageURL == "" {
+				imageURL = a.Picture
+			}
+
+			meta := "Deezer artist"
+			if a.NbFan > 0 {
+				meta = fmt.Sprintf("%s fans", formatIntCompact(a.NbFan))
+			} else if a.NbAlbum > 0 {
+				meta = fmt.Sprintf("%d albums", a.NbAlbum)
+			}
+
+			out = append(out, HomeArtistCard{
+				Name:     a.Name,
+				ImageURL: imageURL,
+				LinkURL:  "/artists/" + strconv.Itoa(a.ID) + "?source=deezer",
+				Meta:     meta,
+				Badge:    "Deezer",
+			})
+		}
+
+		return out, nil
+	}
+
 	artists, err := api.FetchArtists()
 	if err != nil {
 		return nil, err
