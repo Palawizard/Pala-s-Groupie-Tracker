@@ -6,6 +6,8 @@
         <title>{{ .Title }}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="stylesheet" href="/static/css/style.css">
+        <link rel="stylesheet" href="/static/css/dual_slider.css">
+        <link rel="stylesheet" href="/static/css/home_marquee.css">
     </head>
     <body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
     <header class="border-b border-slate-800">
@@ -54,21 +56,23 @@
 
     <footer class="border-t border-slate-800 mt-8">
         <div class="max-w-5xl mx-auto px-4 py-4 text-xs text-slate-500">
-            salut je suis un footer
+            This project footer.
         </div>
     </footer>
 
     <script>
         (function () {
-            var toggle = document.getElementById("source-toggle");
+            const toggle = document.getElementById("source-toggle");
             if (!toggle) return;
 
             function handleClick(event) {
-                var target = event.target;
-                var source = target.getAttribute("data-target");
+                const btn = event.target && event.target.closest ? event.target.closest("button[data-target]") : null;
+                if (!btn) return;
+
+                const source = btn.getAttribute("data-target");
                 if (!source) return;
 
-                var url = new URL(window.location.origin + "/artists");
+                const url = new URL(window.location.href);
                 url.searchParams.set("source", source);
                 window.location.href = url.toString();
             }

@@ -1,59 +1,6 @@
 {{ define "content" }}
     <section class="space-y-8">
-        <style>
-            @keyframes marquee-left {
-                0% { transform: translateX(0); }
-                100% { transform: translateX(-50%); }
-            }
-            @keyframes marquee-right {
-                0% { transform: translateX(-50%); }
-                100% { transform: translateX(0); }
-            }
-            .marquee {
-                position: relative;
-                overflow: hidden;
-            }
-            .marquee::before,
-            .marquee::after {
-                content: "";
-                position: absolute;
-                top: 0;
-                bottom: 0;
-                width: 64px;
-                z-index: 10;
-                pointer-events: none;
-            }
-            .marquee::before {
-                left: 0;
-                background: linear-gradient(to right, rgb(2 6 23), transparent);
-            }
-            .marquee::after {
-                right: 0;
-                background: linear-gradient(to left, rgb(2 6 23), transparent);
-            }
-            .marquee-track {
-                display: flex;
-                width: max-content;
-                gap: 12px;
-                padding: 6px 0;
-            }
-            .marquee-left {
-                animation: marquee-left 26s linear infinite;
-            }
-            .marquee-right {
-                animation: marquee-right 30s linear infinite;
-            }
-            .marquee:hover .marquee-left,
-            .marquee:hover .marquee-right {
-                animation-play-state: paused;
-            }
-            @media (prefers-reduced-motion: reduce) {
-                .marquee-left,
-                .marquee-right {
-                    animation: none;
-                }
-            }
-        </style>
+        <link rel="stylesheet" href="/static/css/home_marquee.css">
 
         <div class="relative overflow-hidden rounded-2xl border border-slate-800 bg-gradient-to-b from-slate-900/60 to-slate-950 p-6">
             <div class="absolute inset-0 pointer-events-none">

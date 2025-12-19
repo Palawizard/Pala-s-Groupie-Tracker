@@ -23,22 +23,14 @@
         const embedUrl = toEmbedUrl(type, id);
 
         if (!embedUrl) return;
+        if (!window.GroupieEmbedModal) return;
 
-        openDeezer.href = deezerUrl || "#";
-        iframe.src = embedUrl;
-
-        modalRoot.classList.remove("hidden");
-        modalRoot.classList.add("flex");
-        modalRoot.setAttribute("aria-hidden", "false");
-        document.body.classList.add("overflow-hidden");
+        window.GroupieEmbedModal.showModal(modalRoot, iframe, openDeezer, deezerUrl, embedUrl);
     }
 
     function closeModal() {
-        modalRoot.classList.add("hidden");
-        modalRoot.classList.remove("flex");
-        modalRoot.setAttribute("aria-hidden", "true");
-        iframe.src = "";
-        document.body.classList.remove("overflow-hidden");
+        if (!window.GroupieEmbedModal) return;
+        window.GroupieEmbedModal.hideModal(modalRoot, iframe);
     }
 
     function onKeyDown(e) {
