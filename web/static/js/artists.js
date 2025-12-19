@@ -1,60 +1,60 @@
 (function () {
-    var form = document.getElementById("artist-filters");
-    var list = document.getElementById("artist-list");
+    const form = document.getElementById("artist-filters");
+    const list = document.getElementById("artist-list");
     if (!form || !list) return;
 
-    var inputs = form.querySelectorAll("input, select");
-    var timeoutId;
+    const inputs = form.querySelectorAll("input, select");
+    let timeoutId;
 
-    var yearMin = document.getElementById("year_min");
-    var yearMax = document.getElementById("year_max");
-    var membersMin = document.getElementById("members_min");
-    var membersMax = document.getElementById("members_max");
+    const yearMin = document.getElementById("year_min");
+    const yearMax = document.getElementById("year_max");
+    const membersMin = document.getElementById("members_min");
+    const membersMax = document.getElementById("members_max");
 
-    var yearMinOut = document.getElementById("year_min_out");
-    var yearMaxOut = document.getElementById("year_max_out");
-    var membersMinOut = document.getElementById("members_min_out");
-    var membersMaxOut = document.getElementById("members_max_out");
+    const yearMinOut = document.getElementById("year_min_out");
+    const yearMaxOut = document.getElementById("year_max_out");
+    const membersMinOut = document.getElementById("members_min_out");
+    const membersMaxOut = document.getElementById("members_max_out");
 
-    var yearFill = document.getElementById("year_fill");
-    var membersFill = document.getElementById("members_fill");
+    const yearFill = document.getElementById("year_fill");
+    const membersFill = document.getElementById("members_fill");
 
     function getCurrentSource() {
         try {
-            var url = new URL(window.location.href);
-            var s = (url.searchParams.get("source") || "").trim().toLowerCase();
+            const u = new URL(window.location.href);
+            const s = (u.searchParams.get("source") || "").trim().toLowerCase();
             if (s === "spotify" || s === "deezer" || s === "apple" || s === "groupie") return s;
         } catch (e) {
         }
 
-        var sourceInput = document.getElementById("source");
-        var v = sourceInput ? String(sourceInput.value || "").trim().toLowerCase() : "";
+        const sourceInput = document.getElementById("source");
+        const v = sourceInput ? String(sourceInput.value || "").trim().toLowerCase() : "";
         if (v === "spotify" || v === "deezer" || v === "apple") return v;
         return "groupie";
     }
 
     function toInt(v) {
-        var n = parseInt(v, 10);
+        const n = parseInt(v, 10);
         return Number.isFinite(n) ? n : 0;
     }
 
     function updateFill(minEl, maxEl, fillEl) {
         if (!minEl || !maxEl || !fillEl) return;
 
-        var minBound = toInt(minEl.min);
-        var maxBound = toInt(minEl.max);
-        var minV = toInt(minEl.value);
-        var maxV = toInt(maxEl.value);
+        const minBound = toInt(minEl.min);
+        const maxBound = toInt(minEl.max);
+        const minV = toInt(minEl.value);
+        const maxV = toInt(maxEl.value);
 
-        var span = maxBound - minBound;
+        const span = maxBound - minBound;
         if (span <= 0) {
             fillEl.style.left = "0%";
             fillEl.style.width = "100%";
             return;
         }
 
-        var left = ((minV - minBound) / span) * 100;
-        var right = ((maxV - minBound) / span) * 100;
+        let left = ((minV - minBound) / span) * 100;
+        let right = ((maxV - minBound) / span) * 100;
 
         if (left < 0) left = 0;
         if (right > 100) right = 100;
@@ -67,8 +67,8 @@
     function updateZIndex(minEl, maxEl) {
         if (!minEl || !maxEl) return;
 
-        var minV = toInt(minEl.value);
-        var maxV = toInt(maxEl.value);
+        const minV = toInt(minEl.value);
+        const maxV = toInt(maxEl.value);
 
         if (minV >= maxV) {
             minEl.style.zIndex = "5";
@@ -82,11 +82,11 @@
     function clampPair(minEl, maxEl, minOutEl, maxOutEl, fillEl) {
         if (!minEl || !maxEl) return;
 
-        var minV = toInt(minEl.value);
-        var maxV = toInt(maxEl.value);
+        let minV = toInt(minEl.value);
+        let maxV = toInt(maxEl.value);
 
         if (minV > maxV) {
-            var active = document.activeElement;
+            const active = document.activeElement;
             if (active === minEl) {
                 maxV = minV;
                 maxEl.value = String(maxV);
@@ -112,8 +112,8 @@
     function buildQuery() {
         normalizeRanges();
 
-        var params = new URLSearchParams();
-        var formData = new FormData(form);
+        const params = new URLSearchParams();
+        const formData = new FormData(form);
 
         formData.forEach(function (value, key) {
             if (value !== "") {
@@ -126,8 +126,8 @@
     }
 
     function fetchArtists() {
-        var query = buildQuery();
-        var url = "/artists/ajax?" + query;
+        const query = buildQuery();
+        const url = "/artists/ajax?" + query;
 
         fetch(url, {
             headers: {
@@ -157,8 +157,8 @@
     }
 
     inputs.forEach(function (input) {
-        var type = input.tagName.toLowerCase() === "select" ? "select" : input.type;
-        var eventName = (type === "text" || type === "number" || type === "range") ? "input" : "change";
+        const type = input.tagName.toLowerCase() === "select" ? "select" : input.type;
+        const eventName = (type === "text" || type === "number" || type === "range") ? "input" : "change";
         input.addEventListener(eventName, scheduleFetch);
     });
 

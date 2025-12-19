@@ -25,22 +25,15 @@
     function openModal(payload) {
         const spotifyUrl = payload.spotifyUrl || "";
         const embedUrl = toEmbedUrl(spotifyUrl);
+        if (!embedUrl) return;
+        if (!window.GroupieEmbedModal) return;
 
-        openSpotify.href = spotifyUrl || "#";
-        iframe.src = embedUrl;
-
-        modalRoot.classList.remove("hidden");
-        modalRoot.classList.add("flex");
-        modalRoot.setAttribute("aria-hidden", "false");
-        document.body.classList.add("overflow-hidden");
+        window.GroupieEmbedModal.showModal(modalRoot, iframe, openSpotify, spotifyUrl, embedUrl);
     }
 
     function closeModal() {
-        modalRoot.classList.add("hidden");
-        modalRoot.classList.remove("flex");
-        modalRoot.setAttribute("aria-hidden", "true");
-        iframe.src = "";
-        document.body.classList.remove("overflow-hidden");
+        if (!window.GroupieEmbedModal) return;
+        window.GroupieEmbedModal.hideModal(modalRoot, iframe);
     }
 
     function onKeyDown(e) {

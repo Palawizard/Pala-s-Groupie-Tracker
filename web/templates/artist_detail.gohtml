@@ -138,6 +138,8 @@
             </div>
         </div>
 
+        <script src="/static/js/embed_modal.js"></script>
+
         {{ if eq .Source "spotify" }}
             {{ if .SpotifyTopTracks }}
             <div class="space-y-3">
@@ -245,7 +247,6 @@
                                 src=""
                                 width="100%"
                                 height="152"
-                                frameborder="0"
                                 style="border:none;border-radius:12px"
                                 allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
                                 loading="lazy"
@@ -381,9 +382,7 @@
                                 src=""
                                 width="100%"
                                 height="152"
-                                frameborder="0"
                                 style="border:none;border-radius:12px"
-                                allowtransparency="true"
                                 allow="encrypted-media; clipboard-write"
                                 loading="lazy"
                         ></iframe>
@@ -509,43 +508,15 @@
 
                 <div id="map" class="w-full h-80 md:h-96 rounded-xl border border-slate-800 overflow-hidden"></div>
 
+                <script id="artist_locations_json" type="application/json">{{ .LocationsJSON }}</script>
+
                 <script
                         src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
                         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
                         crossorigin="">
                 </script>
 
-                <script>
-                    const locations = {{ .LocationsJSON }};
-
-                    const map = L.map('map', {
-                        worldCopyJump: true
-                    }).setView([20, 0], 2);
-
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                        maxZoom: 6,
-                        minZoom: 2,
-                        attribution: '&copy; OpenStreetMap contributors'
-                    }).addTo(map);
-
-                    const bounds = [];
-
-                    locations.forEach(function (loc) {
-                        const marker = L.marker([loc.lat, loc.lng]).addTo(map);
-                        const datesHtml = loc.dates.map(function (d) { return '<div>' + d + '</div>'; }).join('');
-                        marker.bindPopup(
-                            '<div class="text-xs">' +
-                            '<div class="font-semibold mb-1">' + loc.name + '</div>' +
-                            datesHtml +
-                            '</div>'
-                        );
-                        bounds.push([loc.lat, loc.lng]);
-                    });
-
-                    if (bounds.length > 0) {
-                        map.fitBounds(bounds, { padding: [30, 30] });
-                    }
-                </script>
+                <script src="/static/js/artist_map.js"></script>
             </div>
         {{ end }}
     </section>

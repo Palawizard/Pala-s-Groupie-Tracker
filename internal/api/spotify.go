@@ -3,11 +3,13 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -72,12 +74,62 @@ type spotifyArtistAlbumsResponse struct {
 	Items []SpotifyAlbum `json:"items"`
 }
 
+var spotifyHTTP = &http.Client{Timeout: 8 * time.Second}
+
+var spotifyTokenCache = struct {
+	mu        sync.Mutex
+	token     string
+	expiresAt time.Time
+}{}
+
+func spotifyClose(c io.Closer) {
+	_ = c.Close()
+}
+
+func spotifyNewJSONRequest(method, u string, body io.Reader, token string) (*http.Request, error) {
+	req, err := http.NewRequest(method, u, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", "application/json")
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	return req, nil
+}
+
+func spotifyDoJSON(req *http.Request, expectedStatus int, out any) error {
+	resp, err := spotifyHTTP.Do(req)
+	if err != nil {
+		return err
+	}
+	defer spotifyClose(resp.Body)
+
+	if resp.StatusCode != expectedStatus {
+		return fmt.Errorf("spotify request failed: %s", resp.Status)
+	}
+
+	if out == nil {
+		return nil
+	}
+
+	return json.NewDecoder(resp.Body).Decode(out)
+}
+
 func getSpotifyToken() (string, error) {
 	clientID := os.Getenv("SPOTIFY_CLIENT_ID")
 	clientSecret := os.Getenv("SPOTIFY_CLIENT_SECRET")
 	if clientID == "" || clientSecret == "" {
 		return "", fmt.Errorf("missing spotify credentials")
 	}
+
+	spotifyTokenCache.mu.Lock()
+	if spotifyTokenCache.token != "" && time.Now().Before(spotifyTokenCache.expiresAt.Add(-30*time.Second)) {
+		t := spotifyTokenCache.token
+		spotifyTokenCache.mu.Unlock()
+		return t, nil
+	}
+	spotifyTokenCache.mu.Unlock()
 
 	data := url.Values{}
 	data.Set("grant_type", "client_credentials")
@@ -88,16 +140,7 @@ func getSpotifyToken() (string, error) {
 	}
 	req.SetBasicAuth(clientID, clientSecret)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("token request failed: %s", resp.Status)
-	}
+	req.Header.Set("Accept", "application/json")
 
 	var body struct {
 		AccessToken string `json:"access_token"`
@@ -105,13 +148,20 @@ func getSpotifyToken() (string, error) {
 		ExpiresIn   int    `json:"expires_in"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+	if err := spotifyDoJSON(req, http.StatusOK, &body); err != nil {
 		return "", err
 	}
 
 	if body.AccessToken == "" {
 		return "", fmt.Errorf("empty spotify access token")
 	}
+
+	expiresAt := time.Now().Add(time.Duration(body.ExpiresIn) * time.Second)
+
+	spotifyTokenCache.mu.Lock()
+	spotifyTokenCache.token = body.AccessToken
+	spotifyTokenCache.expiresAt = expiresAt
+	spotifyTokenCache.mu.Unlock()
 
 	return body.AccessToken, nil
 }
@@ -124,34 +174,22 @@ func SearchSpotifyArtists(query string) ([]SpotifyArtist, error) {
 
 	baseURL := "https://api.spotify.com/v1/search"
 	params := url.Values{}
-	if strings.TrimSpace(query) == "" {
-		params.Set("q", "*")
-	} else {
-		params.Set("q", query)
+	q := strings.TrimSpace(query)
+	if q == "" {
+		q = "a"
 	}
+	params.Set("q", q)
 	params.Set("type", "artist")
 	params.Set("limit", "30")
 	params.Set("market", "US")
 
-	req, err := http.NewRequest("GET", baseURL+"?"+params.Encode(), nil)
+	req, err := spotifyNewJSONRequest("GET", baseURL+"?"+params.Encode(), nil, token)
 	if err != nil {
 		return nil, err
-	}
-
-	req.Header.Set("Authorization", "Bearer "+token)
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("spotify search failed: %s", resp.Status)
 	}
 
 	var body spotifySearchResponse
-	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+	if err := spotifyDoJSON(req, http.StatusOK, &body); err != nil {
 		return nil, err
 	}
 
@@ -164,27 +202,14 @@ func GetSpotifyArtist(id string) (*SpotifyArtist, error) {
 		return nil, err
 	}
 
-	url := "https://api.spotify.com/v1/artists/" + id
-
-	req, err := http.NewRequest("GET", url, nil)
+	artistURL := "https://api.spotify.com/v1/artists/" + id
+	req, err := spotifyNewJSONRequest("GET", artistURL, nil, token)
 	if err != nil {
 		return nil, err
-	}
-
-	req.Header.Set("Authorization", "Bearer "+token)
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("spotify artist failed: %s", resp.Status)
 	}
 
 	var artist SpotifyArtist
-	if err := json.NewDecoder(resp.Body).Decode(&artist); err != nil {
+	if err := spotifyDoJSON(req, http.StatusOK, &artist); err != nil {
 		return nil, err
 	}
 
@@ -197,33 +222,22 @@ func GetSpotifyArtistTopTracks(id string, market string) ([]SpotifyTrack, error)
 		return nil, err
 	}
 
-	if strings.TrimSpace(market) == "" {
-		market = "US"
+	m := strings.TrimSpace(market)
+	if m == "" {
+		m = "US"
 	}
 
 	baseURL := "https://api.spotify.com/v1/artists/" + id + "/top-tracks"
 	params := url.Values{}
-	params.Set("market", market)
+	params.Set("market", m)
 
-	req, err := http.NewRequest("GET", baseURL+"?"+params.Encode(), nil)
+	req, err := spotifyNewJSONRequest("GET", baseURL+"?"+params.Encode(), nil, token)
 	if err != nil {
 		return nil, err
-	}
-
-	req.Header.Set("Authorization", "Bearer "+token)
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("spotify top tracks failed: %s", resp.Status)
 	}
 
 	var body spotifyTopTracksResponse
-	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+	if err := spotifyDoJSON(req, http.StatusOK, &body); err != nil {
 		return nil, err
 	}
 
@@ -236,47 +250,28 @@ func GetSpotifyArtistAlbums(id string, market string, limit int) ([]SpotifyAlbum
 		return nil, err
 	}
 
-	if strings.TrimSpace(market) == "" {
-		market = "US"
+	m := strings.TrimSpace(market)
+	if m == "" {
+		m = "US"
 	}
 	if limit <= 0 || limit > 50 {
 		limit = 10
 	}
 
-	requestLimit := 50
-	if limit > requestLimit {
-		requestLimit = limit
-	}
-	if requestLimit > 50 {
-		requestLimit = 50
-	}
-
 	baseURL := "https://api.spotify.com/v1/artists/" + id + "/albums"
 	params := url.Values{}
 	params.Set("include_groups", "album,single")
-	params.Set("market", market)
-	params.Set("limit", fmt.Sprintf("%d", requestLimit))
+	params.Set("market", m)
+	params.Set("limit", fmt.Sprintf("%d", limit))
 	params.Set("offset", "0")
 
-	req, err := http.NewRequest("GET", baseURL+"?"+params.Encode(), nil)
+	req, err := spotifyNewJSONRequest("GET", baseURL+"?"+params.Encode(), nil, token)
 	if err != nil {
 		return nil, err
-	}
-
-	req.Header.Set("Authorization", "Bearer "+token)
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("spotify artist albums failed: %s", resp.Status)
 	}
 
 	var body spotifyArtistAlbumsResponse
-	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+	if err := spotifyDoJSON(req, http.StatusOK, &body); err != nil {
 		return nil, err
 	}
 
