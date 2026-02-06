@@ -33,6 +33,7 @@ type AppleArtistView struct {
 type ArtistsPageData struct {
 	Title           string
 	Source          string
+	BasePath        string
 	Artists         []api.Artist
 	Spotify         []SpotifyArtistView
 	Deezer          []DeezerArtistView
@@ -57,6 +58,7 @@ type ArtistsPageData struct {
 // ArtistsHandler renders the full artists page using the shared layout
 func ArtistsHandler(w http.ResponseWriter, r *http.Request) {
 	source := getSource(r)
+	basePath := getBasePath(r)
 
 	var data ArtistsPageData
 	var err error
@@ -78,6 +80,8 @@ func ArtistsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	data.BasePath = basePath
+
 	tmpl, err := template.ParseFiles(
 		"web/templates/layout.gohtml",
 		"web/templates/artists.gohtml",
@@ -96,6 +100,7 @@ func ArtistsHandler(w http.ResponseWriter, r *http.Request) {
 // ArtistsAjaxHandler renders only the artists list section for live filtering
 func ArtistsAjaxHandler(w http.ResponseWriter, r *http.Request) {
 	source := getSource(r)
+	basePath := getBasePath(r)
 
 	var data ArtistsPageData
 	var err error
@@ -114,6 +119,8 @@ func ArtistsAjaxHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to load artists", http.StatusInternalServerError)
 		return
 	}
+
+	data.BasePath = basePath
 
 	tmpl, err := template.ParseFiles("web/templates/artists.gohtml")
 	if err != nil {

@@ -29,6 +29,7 @@ type ArtistDetailPageData struct {
 	Title     string
 	Source    string
 	ActiveNav string
+	BasePath  string
 	Artist    *api.Artist
 
 	SpotifyArtist           *api.SpotifyArtist
@@ -67,7 +68,7 @@ func ArtistDetailHandler(w http.ResponseWriter, r *http.Request) {
 
 	if idSegment == "" || idSegment == "artists" {
 		// `/artists/` without an ID should go back to the list page
-		http.Redirect(w, r, "/artists?source="+source, http.StatusSeeOther)
+		http.Redirect(w, r, withBasePath(r, "/artists")+"?source="+source, http.StatusSeeOther)
 		return
 	}
 
@@ -92,7 +93,7 @@ func handleGroupieArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 	id, err := strconv.Atoi(idSegment)
 	if err != nil || id <= 0 {
 		// IDs are numeric in Groupie mode
-		http.Redirect(w, r, "/artists?source=groupie", http.StatusSeeOther)
+		http.Redirect(w, r, withBasePath(r, "/artists")+"?source=groupie", http.StatusSeeOther)
 		return
 	}
 
@@ -191,6 +192,7 @@ func handleGroupieArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 		Title:     artist.Name,
 		Source:    "groupie",
 		ActiveNav: "artists",
+		BasePath:  getBasePath(r),
 		Artist:    artist,
 
 		SpotifyArtist:           nil,
@@ -232,7 +234,7 @@ func handleGroupieArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 func handleSpotifyArtistDetail(w http.ResponseWriter, r *http.Request, idSegment string) {
 	if !isLikelySpotifyID(idSegment) {
 		// Protect the API from random strings and keep URLs predictable
-		http.Redirect(w, r, "/artists?source=spotify", http.StatusSeeOther)
+		http.Redirect(w, r, withBasePath(r, "/artists")+"?source=spotify", http.StatusSeeOther)
 		return
 	}
 
@@ -324,6 +326,7 @@ func handleSpotifyArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 		Title:     artist.Name,
 		Source:    "spotify",
 		ActiveNav: "artists",
+		BasePath:  getBasePath(r),
 		Artist:    nil,
 
 		SpotifyArtist:           artist,
@@ -364,7 +367,7 @@ func handleSpotifyArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 func handleDeezerArtistDetail(w http.ResponseWriter, r *http.Request, idSegment string) {
 	id, err := strconv.Atoi(idSegment)
 	if err != nil || id <= 0 {
-		http.Redirect(w, r, "/artists?source=deezer", http.StatusSeeOther)
+		http.Redirect(w, r, withBasePath(r, "/artists")+"?source=deezer", http.StatusSeeOther)
 		return
 	}
 
@@ -439,6 +442,7 @@ func handleDeezerArtistDetail(w http.ResponseWriter, r *http.Request, idSegment 
 		Title:     artist.Name,
 		Source:    "deezer",
 		ActiveNav: "artists",
+		BasePath:  getBasePath(r),
 		Artist:    nil,
 
 		SpotifyArtist:           nil,
@@ -479,7 +483,7 @@ func handleDeezerArtistDetail(w http.ResponseWriter, r *http.Request, idSegment 
 func handleAppleArtistDetail(w http.ResponseWriter, r *http.Request, idSegment string) {
 	id, err := strconv.Atoi(idSegment)
 	if err != nil || id <= 0 {
-		http.Redirect(w, r, "/artists?source=apple", http.StatusSeeOther)
+		http.Redirect(w, r, withBasePath(r, "/artists")+"?source=apple", http.StatusSeeOther)
 		return
 	}
 
@@ -540,6 +544,7 @@ func handleAppleArtistDetail(w http.ResponseWriter, r *http.Request, idSegment s
 		Title:     artist.ArtistName,
 		Source:    "apple",
 		ActiveNav: "artists",
+		BasePath:  getBasePath(r),
 		Artist:    nil,
 
 		SpotifyArtist:           nil,

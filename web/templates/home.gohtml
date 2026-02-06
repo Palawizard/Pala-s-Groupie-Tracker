@@ -1,6 +1,6 @@
 {{ define "content" }}
     <section class="space-y-8">
-        <link rel="stylesheet" href="/static/css/home_marquee.css">
+        <link rel="stylesheet" href="{{ .BasePath }}/static/css/home_marquee.css">
 
         <div class="relative overflow-hidden rounded-2xl border border-slate-800 bg-gradient-to-b from-slate-900/60 to-slate-950 p-6">
             <div class="absolute inset-0 pointer-events-none">
@@ -23,21 +23,21 @@
                 </p>
 
                 <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-                    <a href="/artists?source={{ .Source }}" class="inline-flex items-center justify-center rounded-full bg-emerald-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-emerald-400 transition-colors">
+                    <a href="{{ .BasePath }}/artists?source={{ .Source }}" class="inline-flex items-center justify-center rounded-full bg-emerald-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-emerald-400 transition-colors">
                         View artists
                     </a>
 
                     <div class="inline-flex rounded-full border border-slate-700 overflow-hidden bg-slate-950/60">
-                        <a href="/?source=groupie" class="px-4 py-2 text-xs font-medium {{ if and (ne .Source "spotify") (ne .Source "deezer") (ne .Source "apple") }}bg-slate-700 text-white{{ else }}text-slate-300 hover:text-white{{ end }} transition-colors">
+                        <a href="{{ .BasePath }}/?source=groupie" class="px-4 py-2 text-xs font-medium {{ if and (ne .Source "spotify") (ne .Source "deezer") (ne .Source "apple") }}bg-slate-700 text-white{{ else }}text-slate-300 hover:text-white{{ end }} transition-colors">
                             Groupie
                         </a>
-                        <a href="/?source=spotify" class="px-4 py-2 text-xs font-medium {{ if eq .Source "spotify" }}bg-emerald-500 text-slate-950{{ else }}text-slate-300 hover:text-white{{ end }} transition-colors">
+                        <a href="{{ .BasePath }}/?source=spotify" class="px-4 py-2 text-xs font-medium {{ if eq .Source "spotify" }}bg-emerald-500 text-slate-950{{ else }}text-slate-300 hover:text-white{{ end }} transition-colors">
                             Spotify
                         </a>
-                        <a href="/?source=deezer" class="px-4 py-2 text-xs font-medium {{ if eq .Source "deezer" }}bg-sky-500 text-slate-950{{ else }}text-slate-300 hover:text-white{{ end }} transition-colors">
+                        <a href="{{ .BasePath }}/?source=deezer" class="px-4 py-2 text-xs font-medium {{ if eq .Source "deezer" }}bg-sky-500 text-slate-950{{ else }}text-slate-300 hover:text-white{{ end }} transition-colors">
                             Deezer
                         </a>
-                        <a href="/?source=apple" class="px-4 py-2 text-xs font-medium {{ if eq .Source "apple" }}bg-slate-200 text-slate-950{{ else }}text-slate-300 hover:text-white{{ end }} transition-colors">
+                        <a href="{{ .BasePath }}/?source=apple" class="px-4 py-2 text-xs font-medium {{ if eq .Source "apple" }}bg-slate-200 text-slate-950{{ else }}text-slate-300 hover:text-white{{ end }} transition-colors">
                             Apple
                         </a>
                     </div>
@@ -55,7 +55,7 @@
                         Hover to pause. Click a card to open the artist page.
                     </p>
                 </div>
-                <a href="/artists?source={{ .Source }}" class="text-xs text-slate-300 hover:text-white transition-colors">
+                <a href="{{ .BasePath }}/artists?source={{ .Source }}" class="text-xs text-slate-300 hover:text-white transition-colors">
                     See all →
                 </a>
             </div>

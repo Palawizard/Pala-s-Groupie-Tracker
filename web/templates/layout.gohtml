@@ -5,20 +5,20 @@
         <meta charset="UTF-8">
         <title>{{ .Title }}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link rel="stylesheet" href="/static/css/style.css">
-        <link rel="stylesheet" href="/static/css/dual_slider.css">
-        <link rel="stylesheet" href="/static/css/home_marquee.css">
+        <link rel="stylesheet" href="{{ .BasePath }}/static/css/style.css">
+        <link rel="stylesheet" href="{{ .BasePath }}/static/css/dual_slider.css">
+        <link rel="stylesheet" href="{{ .BasePath }}/static/css/home_marquee.css">
     </head>
-    <body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
+    <body data-base-path="{{ .BasePath }}" class="min-h-screen bg-slate-950 text-slate-100 antialiased">
     <header class="border-b border-slate-800">
         <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
-            <a href="/" class="text-lg font-semibold tracking-[0.18em] uppercase">
+            <a href="{{ .BasePath }}/" class="text-lg font-semibold tracking-[0.18em] uppercase">
                 Pala's Groupie Tracker
             </a>
             <div class="flex items-center gap-4">
                 <nav class="hidden sm:flex items-center gap-4 text-sm">
-                    <a href="/?source={{ .Source }}" class="{{ if eq .ActiveNav "home" }}text-slate-300{{ else }}text-slate-400{{ end }} hover:text-white transition-colors">Home</a>
-                    <a href="/artists?source={{ .Source }}" class="{{ if eq .ActiveNav "artists" }}text-slate-300{{ else }}text-slate-400{{ end }} hover:text-white transition-colors">Artists</a>
+                    <a href="{{ .BasePath }}/?source={{ .Source }}" class="{{ if eq .ActiveNav "home" }}text-slate-300{{ else }}text-slate-400{{ end }} hover:text-white transition-colors">Home</a>
+                    <a href="{{ .BasePath }}/artists?source={{ .Source }}" class="{{ if eq .ActiveNav "artists" }}text-slate-300{{ else }}text-slate-400{{ end }} hover:text-white transition-colors">Artists</a>
                 </nav>
                 <div id="source-toggle" class="flex text-[11px] rounded-full border border-slate-700 overflow-hidden">
                     <button
@@ -54,7 +54,7 @@
         {{ template "content" . }}
     </main>
 
-    <script src="/static/js/source_toggle.js"></script>
+    <script src="{{ .BasePath }}/static/js/source_toggle.js"></script>
     </body>
     </html>
 {{ end }}
