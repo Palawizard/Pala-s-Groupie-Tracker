@@ -222,8 +222,8 @@ func handleSpotifyArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 
 	if len(latestAlbums) > 1 {
 		sort.SliceStable(latestAlbums, func(i, j int) bool {
-			di, okI := parseSpotifyReleaseDate(latestAlbums[i].ReleaseDate)
-			dj, okJ := parseSpotifyReleaseDate(latestAlbums[j].ReleaseDate)
+			di, okI := api.ParseSpotifyReleaseDate(latestAlbums[i].ReleaseDate)
+			dj, okJ := api.ParseSpotifyReleaseDate(latestAlbums[j].ReleaseDate)
 
 			if okI && okJ && !di.Equal(dj) {
 				return di.After(dj)
@@ -518,25 +518,6 @@ func upscaleAppleArtwork(u string, size int) string {
 		return strings.Join(parts, "/")
 	}
 	return u
-}
-
-func parseSpotifyReleaseDate(s string) (time.Time, bool) {
-	s = strings.TrimSpace(s)
-	if s == "" {
-		return time.Time{}, false
-	}
-
-	if t, err := time.Parse("2006-01-02", s); err == nil {
-		return t, true
-	}
-	if t, err := time.Parse("2006-01", s); err == nil {
-		return time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, time.UTC), true
-	}
-	if t, err := time.Parse("2006", s); err == nil {
-		return time.Date(t.Year(), time.January, 1, 0, 0, 0, 0, time.UTC), true
-	}
-
-	return time.Time{}, false
 }
 
 func parseDeezerReleaseDate(s string) (time.Time, bool) {

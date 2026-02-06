@@ -254,15 +254,26 @@ func GetSpotifyArtistAlbums(id string, market string, limit int) ([]SpotifyAlbum
 	if m == "" {
 		m = "US"
 	}
-	if limit <= 0 || limit > 50 {
-		limit = 10
+	// `limit` is the number of items we want to return. We fetch more than that
+	// and then sort/slice locally because Spotify's ordering can be inconsistent
+	// across include_groups/markets for some artists.
+	want := limit
+	if want <= 0 {
+		want = 10
+	}
+	if want > 50 {
+		want = 50
+	}
+	fetch := 50
+	if want > fetch {
+		fetch = want
 	}
 
 	baseURL := "https://api.spotify.com/v1/artists/" + id + "/albums"
 	params := url.Values{}
 	params.Set("include_groups", "album,single")
 	params.Set("market", m)
-	params.Set("limit", fmt.Sprintf("%d", limit))
+	params.Set("limit", fmt.Sprintf("%d", fetch))
 	params.Set("offset", "0")
 
 	req, err := spotifyNewJSONRequest("GET", baseURL+"?"+params.Encode(), nil, token)
@@ -281,8 +292,8 @@ func GetSpotifyArtistAlbums(id string, market string, limit int) ([]SpotifyAlbum
 			continue
 		}
 		if existing, ok := byID[a.ID]; ok {
-			da, oka := parseSpotifyReleaseDate(a.ReleaseDate)
-			de, oke := parseSpotifyReleaseDate(existing.ReleaseDate)
+			da, oka := ParseSpotifyReleaseDate(a.ReleaseDate)
+			de, oke := ParseSpotifyReleaseDate(existing.ReleaseDate)
 			if oka && (!oke || da.After(de)) {
 				byID[a.ID] = a
 			}
@@ -297,8 +308,8 @@ func GetSpotifyArtistAlbums(id string, market string, limit int) ([]SpotifyAlbum
 	}
 
 	sort.SliceStable(merged, func(i, j int) bool {
-		di, okI := parseSpotifyReleaseDate(merged[i].ReleaseDate)
-		dj, okJ := parseSpotifyReleaseDate(merged[j].ReleaseDate)
+		di, okI := ParseSpotifyReleaseDate(merged[i].ReleaseDate)
+		dj, okJ := ParseSpotifyReleaseDate(merged[j].ReleaseDate)
 
 		if okI && okJ && !di.Equal(dj) {
 			return di.After(dj)
@@ -316,21 +327,38 @@ func GetSpotifyArtistAlbums(id string, market string, limit int) ([]SpotifyAlbum
 		return merged[i].ID < merged[j].ID
 	})
 
-	if len(merged) > limit {
-		merged = merged[:limit]
+	if len(merged) > want {
+		merged = merged[:want]
 	}
 
 	return merged, nil
 }
 
-func parseSpotifyReleaseDate(s string) (time.Time, bool) {
+// ParseSpotifyReleaseDate parses Spotify `release_date` values which can be:
+// - "YYYY-MM-DD"
+// - "YYYY-MM"
+// - "YYYY"
+// Some APIs may return full timestamps; we accept RFC3339/RFC3339Nano too.
+func ParseSpotifyReleaseDate(s string) (time.Time, bool) {
 	s = strings.TrimSpace(s)
 	if s == "" {
 		return time.Time{}, false
 	}
 
+	if t, err := time.Parse(time.RFC3339Nano, s); err == nil {
+		return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC), true
+	}
+	if t, err := time.Parse(time.RFC3339, s); err == nil {
+		return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC), true
+	}
+	if len(s) >= 10 {
+		if t, err := time.Parse("2006-01-02", s[:10]); err == nil {
+			return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC), true
+		}
+	}
+
 	if t, err := time.Parse("2006-01-02", s); err == nil {
-		return t, true
+		return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC), true
 	}
 	if t, err := time.Parse("2006-01", s); err == nil {
 		return time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, time.UTC), true
