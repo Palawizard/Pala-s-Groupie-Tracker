@@ -72,6 +72,25 @@
                 const source = btn.getAttribute("data-target");
                 if (!source) return;
 
+                const path = window.location.pathname || "/";
+                const isArtistDetail = /^\/artists\/[^/]+$/.test(path) && path !== "/artists/ajax";
+
+                // Switching API from an artist detail page would keep the previous ID (groupie/spotify/deezer/apple),
+                // which often produces a 404 or points to a different artist. Send the user to the artist search
+                // page for the selected source instead.
+                if (isArtistDetail) {
+                    const url = new URL("/artists", window.location.origin);
+                    url.searchParams.set("source", source);
+
+                    const name = (document.querySelector("main h1")?.textContent || "").trim();
+                    if (name) {
+                        url.searchParams.set("q", name);
+                    }
+
+                    window.location.href = url.toString();
+                    return;
+                }
+
                 const url = new URL(window.location.href);
                 url.searchParams.set("source", source);
                 window.location.href = url.toString();

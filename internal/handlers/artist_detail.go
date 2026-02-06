@@ -58,6 +58,14 @@ func ArtistDetailHandler(w http.ResponseWriter, r *http.Request) {
 	source := getSource(r)
 	idSegment := path.Base(r.URL.Path)
 
+	// "/artists/" can reach this handler due to the mux prefix match. In that case
+	// (or if the segment clearly doesn't match the selected source), redirect to the
+	// artists search page instead of returning a 404.
+	if idSegment == "" || idSegment == "artists" {
+		http.Redirect(w, r, "/artists?source="+source, http.StatusSeeOther)
+		return
+	}
+
 	if source == "spotify" {
 		handleSpotifyArtistDetail(w, r, idSegment)
 		return
@@ -77,7 +85,7 @@ func ArtistDetailHandler(w http.ResponseWriter, r *http.Request) {
 func handleGroupieArtistDetail(w http.ResponseWriter, r *http.Request, idSegment string) {
 	id, err := strconv.Atoi(idSegment)
 	if err != nil || id <= 0 {
-		NotFound(w, r)
+		http.Redirect(w, r, "/artists?source=groupie", http.StatusSeeOther)
 		return
 	}
 
@@ -167,7 +175,7 @@ func handleGroupieArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 
 func handleSpotifyArtistDetail(w http.ResponseWriter, r *http.Request, idSegment string) {
 	if !isLikelySpotifyID(idSegment) {
-		NotFound(w, r)
+		http.Redirect(w, r, "/artists?source=spotify", http.StatusSeeOther)
 		return
 	}
 
@@ -293,7 +301,7 @@ func handleSpotifyArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 func handleDeezerArtistDetail(w http.ResponseWriter, r *http.Request, idSegment string) {
 	id, err := strconv.Atoi(idSegment)
 	if err != nil || id <= 0 {
-		NotFound(w, r)
+		http.Redirect(w, r, "/artists?source=deezer", http.StatusSeeOther)
 		return
 	}
 
@@ -405,7 +413,7 @@ func handleDeezerArtistDetail(w http.ResponseWriter, r *http.Request, idSegment 
 func handleAppleArtistDetail(w http.ResponseWriter, r *http.Request, idSegment string) {
 	id, err := strconv.Atoi(idSegment)
 	if err != nil || id <= 0 {
-		NotFound(w, r)
+		http.Redirect(w, r, "/artists?source=apple", http.StatusSeeOther)
 		return
 	}
 
