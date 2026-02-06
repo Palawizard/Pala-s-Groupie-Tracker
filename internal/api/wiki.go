@@ -31,6 +31,7 @@ type wikiSearchResponse struct {
 	} `json:"query"`
 }
 
+// searchWikipediaTitle runs a search query and tries to pick the most suitable page title
 func searchWikipediaTitle(rawQuery string) (string, error) {
 	if rawQuery == "" {
 		return "", fmt.Errorf("empty query")
@@ -38,6 +39,7 @@ func searchWikipediaTitle(rawQuery string) (string, error) {
 
 	base := strings.TrimSpace(rawQuery)
 	lowerBase := strings.ToLower(base)
+	// Strip common disambiguation suffixes to increase the chance of an exact match
 	suffixes := []string{" band", " music group", " musical group", " singer", " musician", " rapper", " artist"}
 	for _, s := range suffixes {
 		if strings.HasSuffix(lowerBase, s) {
@@ -62,6 +64,7 @@ func searchWikipediaTitle(rawQuery string) (string, error) {
 		return "", err
 	}
 
+	// Wikipedia recommends setting a descriptive UA
 	req.Header.Set("User-Agent", "GroupieTrackerSchoolProject/1.0 (contact@example.com)")
 
 	client := &http.Client{Timeout: 5 * time.Second}
@@ -85,6 +88,7 @@ func searchWikipediaTitle(rawQuery string) (string, error) {
 		return "", fmt.Errorf("no search results")
 	}
 
+	// Prefer exact title matches, then common disambiguation variants, then first hit
 	exactTitle := ""
 	prefTitle := ""
 	anyTitle := ""
@@ -130,6 +134,7 @@ func searchWikipediaTitle(rawQuery string) (string, error) {
 	return "", fmt.Errorf("no suitable title")
 }
 
+// FetchWikipediaSummary returns the page summary extract and desktop URL for the best matching title
 func FetchWikipediaSummary(title string) (string, string, error) {
 	if title == "" {
 		return "", "", fmt.Errorf("empty title")
@@ -138,6 +143,7 @@ func FetchWikipediaSummary(title string) (string, string, error) {
 	var resolvedTitle string
 	var err error
 
+	// Try a few targeted queries first to avoid people/places with similar names
 	resolvedTitle, err = searchWikipediaTitle(title + " artist")
 	if err != nil {
 		resolvedTitle, err = searchWikipediaTitle(title + " band")
@@ -152,6 +158,7 @@ func FetchWikipediaSummary(title string) (string, string, error) {
 		return "", "", err
 	}
 
+	// Summary endpoint uses the page title as a path segment
 	escaped := url.PathEscape(resolvedTitle)
 	fullURL := wikiSummaryEndpoint + escaped
 

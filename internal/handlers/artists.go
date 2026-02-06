@@ -54,6 +54,7 @@ type ArtistsPageData struct {
 	MembersMaxValue int
 }
 
+// ArtistsHandler renders the full artists page using the shared layout
 func ArtistsHandler(w http.ResponseWriter, r *http.Request) {
 	source := getSource(r)
 
@@ -61,12 +62,14 @@ func ArtistsHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	if source == "spotify" {
+		// Spotify mode uses the Spotify search API and adds Last.fm listeners
 		data, err = buildSpotifyData(r)
 	} else if source == "deezer" {
 		data, err = buildDeezerData(r)
 	} else if source == "apple" {
 		data, err = buildAppleData(r)
 	} else {
+		// Default mode uses the original Groupie API and supports year/member filters
 		data, err = buildGroupieData(r)
 	}
 
@@ -90,6 +93,7 @@ func ArtistsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ArtistsAjaxHandler renders only the artists list section for live filtering
 func ArtistsAjaxHandler(w http.ResponseWriter, r *http.Request) {
 	source := getSource(r)
 
@@ -124,12 +128,14 @@ func ArtistsAjaxHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// buildGroupieData builds the artists list and filter state for the original Groupie dataset
 func buildGroupieData(r *http.Request) (ArtistsPageData, error) {
 	artists, err := api.FetchArtists()
 	if err != nil {
 		return ArtistsPageData{}, err
 	}
 
+	// Filters are passed as query params so they can be shared via URL
 	query := strings.TrimSpace(r.URL.Query().Get("q"))
 	yearMinStr := strings.TrimSpace(r.URL.Query().Get("year_min"))
 	yearMaxStr := strings.TrimSpace(r.URL.Query().Get("year_max"))
@@ -138,6 +144,7 @@ func buildGroupieData(r *http.Request) (ArtistsPageData, error) {
 
 	yearMinBound, yearMaxBound, membersMinBound, membersMaxBound := computeGroupieBounds(artists)
 
+	// Parse ints and fall back to 0 on invalid values
 	yearMin, _ := strconv.Atoi(yearMinStr)
 	yearMax, _ := strconv.Atoi(yearMaxStr)
 	membersMin, _ := strconv.Atoi(membersMinStr)
@@ -149,6 +156,7 @@ func buildGroupieData(r *http.Request) (ArtistsPageData, error) {
 	membersMaxValue := membersMax
 
 	if yearMinValue == 0 {
+		// Default to the computed min bound when the slider isn't set
 		yearMinValue = yearMinBound
 	}
 	if yearMaxValue == 0 {
@@ -162,6 +170,7 @@ func buildGroupieData(r *http.Request) (ArtistsPageData, error) {
 	}
 
 	if yearMinValue < yearMinBound {
+		// Clamp values so the UI stays in sync with the backend
 		yearMinValue = yearMinBound
 	}
 	if yearMaxValue > yearMaxBound {
@@ -175,6 +184,7 @@ func buildGroupieData(r *http.Request) (ArtistsPageData, error) {
 	}
 
 	if yearMinValue > yearMaxValue {
+		// Keep ranges consistent even if sliders cross
 		yearMinValue = yearMaxValue
 	}
 	if membersMinValue > membersMaxValue {
@@ -186,6 +196,7 @@ func buildGroupieData(r *http.Request) (ArtistsPageData, error) {
 
 	for _, a := range artists {
 		if lowerQuery != "" {
+			// Match on artist name or member names
 			matched := strings.Contains(strings.ToLower(a.Name), lowerQuery)
 			if !matched {
 				for _, m := range a.Members {
@@ -242,11 +253,13 @@ func buildGroupieData(r *http.Request) (ArtistsPageData, error) {
 	return data, nil
 }
 
+// buildSpotifyData searches Spotify and enriches results with Last.fm listener counts
 func buildSpotifyData(r *http.Request) (ArtistsPageData, error) {
 	query := strings.TrimSpace(r.URL.Query().Get("q"))
 	sortParam := strings.TrimSpace(r.URL.Query().Get("sort"))
 
 	if query == "" {
+		// Spotify search rejects empty queries
 		query = "a"
 	}
 
@@ -263,16 +276,18 @@ func buildSpotifyData(r *http.Request) (ArtistsPageData, error) {
 		}
 	}
 
+	// Fetch Last.fm listeners in parallel but cap concurrency
 	sem := make(chan struct{}, 8)
 	var wg sync.WaitGroup
 
 	for i := range views {
 		wg.Add(1)
-		go func(v *SpotifyArtistView) {
+		go func(v *SpotifyArtistView) { // fetch Last.fm listeners concurrently
 			defer wg.Done()
 			sem <- struct{}{}
 			listeners, err := api.FetchArtistMonthlyListeners(v.Artist.Name)
 			if err != nil {
+				// Listener counts are best-effort, keep the artist even on failure
 				listeners = 0
 			}
 			v.MonthlyListeners = listeners
@@ -283,24 +298,25 @@ func buildSpotifyData(r *http.Request) (ArtistsPageData, error) {
 	wg.Wait()
 
 	if sortParam == "" {
+		// Default matches Spotify's natural "relevance" ordering
 		sortParam = "relevance"
 	}
 
 	switch sortParam {
 	case "followers_asc":
-		sort.Slice(views, func(i, j int) bool {
+		sort.Slice(views, func(i, j int) bool { // smallest follower count first
 			return views[i].Followers < views[j].Followers
 		})
 	case "followers_desc":
-		sort.Slice(views, func(i, j int) bool {
+		sort.Slice(views, func(i, j int) bool { // largest follower count first
 			return views[i].Followers > views[j].Followers
 		})
 	case "listeners_asc":
-		sort.Slice(views, func(i, j int) bool {
+		sort.Slice(views, func(i, j int) bool { // smallest listener count first
 			return views[i].MonthlyListeners < views[j].MonthlyListeners
 		})
 	case "listeners_desc":
-		sort.Slice(views, func(i, j int) bool {
+		sort.Slice(views, func(i, j int) bool { // largest listener count first
 			return views[i].MonthlyListeners > views[j].MonthlyListeners
 		})
 	case "relevance":
@@ -309,9 +325,10 @@ func buildSpotifyData(r *http.Request) (ArtistsPageData, error) {
 	}
 
 	data := ArtistsPageData{
-		Title:     "Artists",
-		Source:    "spotify",
-		Spotify:   views,
+		Title:   "Artists",
+		Source:  "spotify",
+		Spotify: views,
+		// Preserve the user's original query instead of the fallback "a"
 		Query:     strings.TrimSpace(r.URL.Query().Get("q")),
 		Sort:      sortParam,
 		ActiveNav: "artists",
@@ -320,6 +337,7 @@ func buildSpotifyData(r *http.Request) (ArtistsPageData, error) {
 	return data, nil
 }
 
+// buildDeezerData searches Deezer and applies simple sorting options
 func buildDeezerData(r *http.Request) (ArtistsPageData, error) {
 	query := strings.TrimSpace(r.URL.Query().Get("q"))
 	sortParam := strings.TrimSpace(r.URL.Query().Get("sort"))
@@ -347,19 +365,19 @@ func buildDeezerData(r *http.Request) (ArtistsPageData, error) {
 
 	switch sortParam {
 	case "fans_asc":
-		sort.Slice(views, func(i, j int) bool {
+		sort.Slice(views, func(i, j int) bool { // smallest fan count first
 			return views[i].Fans < views[j].Fans
 		})
 	case "fans_desc":
-		sort.Slice(views, func(i, j int) bool {
+		sort.Slice(views, func(i, j int) bool { // largest fan count first
 			return views[i].Fans > views[j].Fans
 		})
 	case "albums_asc":
-		sort.Slice(views, func(i, j int) bool {
+		sort.Slice(views, func(i, j int) bool { // smallest album count first
 			return views[i].Albums < views[j].Albums
 		})
 	case "albums_desc":
-		sort.Slice(views, func(i, j int) bool {
+		sort.Slice(views, func(i, j int) bool { // largest album count first
 			return views[i].Albums > views[j].Albums
 		})
 	case "relevance":
@@ -379,6 +397,7 @@ func buildDeezerData(r *http.Request) (ArtistsPageData, error) {
 	return data, nil
 }
 
+// buildAppleData searches iTunes for artists and uses artwork as a proxy for artist images
 func buildAppleData(r *http.Request) (ArtistsPageData, error) {
 	query := strings.TrimSpace(r.URL.Query().Get("q"))
 	sortParam := strings.TrimSpace(r.URL.Query().Get("sort"))
@@ -405,11 +424,11 @@ func buildAppleData(r *http.Request) (ArtistsPageData, error) {
 
 	switch sortParam {
 	case "name_asc":
-		sort.Slice(views, func(i, j int) bool {
+		sort.Slice(views, func(i, j int) bool { // A to Z by artist name
 			return strings.ToLower(views[i].Artist.ArtistName) < strings.ToLower(views[j].Artist.ArtistName)
 		})
 	case "name_desc":
-		sort.Slice(views, func(i, j int) bool {
+		sort.Slice(views, func(i, j int) bool { // Z to A by artist name
 			return strings.ToLower(views[i].Artist.ArtistName) > strings.ToLower(views[j].Artist.ArtistName)
 		})
 	case "relevance":
@@ -429,8 +448,10 @@ func buildAppleData(r *http.Request) (ArtistsPageData, error) {
 	return data, nil
 }
 
+// computeGroupieBounds computes slider bounds for year and member count
 func computeGroupieBounds(artists []api.Artist) (int, int, int, int) {
 	if len(artists) == 0 {
+		// Keep sane defaults so the UI can still render
 		return 1900, 2100, 1, 10
 	}
 
@@ -458,6 +479,7 @@ func computeGroupieBounds(artists []api.Artist) (int, int, int, int) {
 		yearMax = 2100
 	}
 	if yearMax < yearMin {
+		// Avoid broken ranges if the dataset is malformed
 		yearMax = yearMin
 	}
 

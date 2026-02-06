@@ -21,7 +21,9 @@ type lastfmArtistInfo struct {
 	} `json:"artist"`
 }
 
+// FetchArtistMonthlyListeners fetches the Last.fm listener count for the given artist name
 func FetchArtistMonthlyListeners(artistName string) (int, error) {
+	// Credentials are provided via .env for local dev
 	apiKey := os.Getenv("LASTFM_API_KEY")
 	if apiKey == "" {
 		return 0, errors.New("missing LASTFM_API_KEY")
@@ -44,8 +46,10 @@ func FetchArtistMonthlyListeners(artistName string) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	// Some APIs rely on a UA for rate limiting and abuse detection
 	req.Header.Set("User-Agent", "GroupieTrackerSchoolProject/1.0 (contact@example.com)")
 
+	// Use a short timeout since this is "extra" data for sorting/display
 	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -54,6 +58,7 @@ func FetchArtistMonthlyListeners(artistName string) (int, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		// Avoid leaking upstream responses to the UI
 		return 0, errors.New("lastfm request failed")
 	}
 

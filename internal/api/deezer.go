@@ -85,6 +85,7 @@ type deezerListResponse[T any] struct {
 	Next  string `json:"next"`
 }
 
+// deezerGetJSON performs a GET request and decodes Deezer's JSON response into out
 func deezerGetJSON(fullURL string, out any) error {
 	req, err := http.NewRequest("GET", fullURL, nil)
 	if err != nil {
@@ -94,6 +95,7 @@ func deezerGetJSON(fullURL string, out any) error {
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "GroupieTrackerSchoolProject/1.0")
 
+	// Use a small timeout so slow external calls don't stall the UI
 	client := &http.Client{Timeout: 8 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -101,6 +103,7 @@ func deezerGetJSON(fullURL string, out any) error {
 	}
 	defer resp.Body.Close()
 
+	// Read the full body so we can inspect Deezer's embedded error envelope
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
@@ -111,6 +114,7 @@ func deezerGetJSON(fullURL string, out any) error {
 	}
 
 	var env deezerErrorEnvelope
+	// Deezer can return 200 with an `error` object, so check it before decoding
 	_ = json.Unmarshal(b, &env)
 	if env.Error != nil {
 		msg := strings.TrimSpace(env.Error.Message)
@@ -127,9 +131,11 @@ func deezerGetJSON(fullURL string, out any) error {
 	return nil
 }
 
+// SearchDeezerArtists searches Deezer's catalog for artists matching query
 func SearchDeezerArtists(query string) ([]DeezerArtist, error) {
 	q := strings.TrimSpace(query)
 	if q == "" {
+		// Empty searches are rejected, use a simple fallback
 		q = "a"
 	}
 
@@ -144,6 +150,7 @@ func SearchDeezerArtists(query string) ([]DeezerArtist, error) {
 	return payload.Data, nil
 }
 
+// GetDeezerArtist fetches a single artist by Deezer ID
 func GetDeezerArtist(id int) (*DeezerArtist, error) {
 	if id <= 0 {
 		return nil, fmt.Errorf("invalid deezer artist id")
@@ -161,6 +168,7 @@ func GetDeezerArtist(id int) (*DeezerArtist, error) {
 	return &artist, nil
 }
 
+// GetDeezerArtistTopTracks returns the artist's top tracks
 func GetDeezerArtistTopTracks(id int, limit int) ([]DeezerTrack, error) {
 	if id <= 0 {
 		return nil, fmt.Errorf("invalid deezer artist id")
@@ -180,6 +188,7 @@ func GetDeezerArtistTopTracks(id int, limit int) ([]DeezerTrack, error) {
 	return payload.Data, nil
 }
 
+// GetDeezerArtistAlbums returns a best-effort list of the artist's latest albums and singles
 func GetDeezerArtistAlbums(id int, limit int) ([]DeezerAlbum, error) {
 	if id <= 0 {
 		return nil, fmt.Errorf("invalid deezer artist id")
@@ -192,12 +201,12 @@ func GetDeezerArtistAlbums(id int, limit int) ([]DeezerAlbum, error) {
 		want = 50
 	}
 
-	// Deezer can expose albums vs singles/EP via a `type` filter depending on the artist.
-	// To keep the "Latest releases" section consistent, try multiple types and merge.
+	// Request a larger pool, then enrich and sort locally
 	fetch := 50
 	recordTypes := []string{"", "single", "ep", "album"}
 
 	ordered := make([]DeezerAlbum, 0, fetch)
+	// Keep the first-seen index so we preserve a stable order before sorting
 	seen := make(map[int]int, fetch)
 	for _, rt := range recordTypes {
 		params := url.Values{}
@@ -208,7 +217,8 @@ func GetDeezerArtistAlbums(id int, limit int) ([]DeezerAlbum, error) {
 
 		var payload deezerListResponse[DeezerAlbum]
 		if err := deezerGetJSON(deezerBaseURL+"/artist/"+strconv.Itoa(id)+"/albums?"+params.Encode(), &payload); err != nil {
-			// The unfiltered request is required; typed requests are best-effort.
+
+			// Type-filtered calls can fail even when the unfiltered call works
 			if strings.TrimSpace(rt) == "" {
 				return nil, err
 			}
@@ -220,6 +230,7 @@ func GetDeezerArtistAlbums(id int, limit int) ([]DeezerAlbum, error) {
 				continue
 			}
 			if idx, ok := seen[a.ID]; ok {
+				// Merge in missing fields from alternate endpoints
 				if ordered[idx].ReleaseDate == "" && a.ReleaseDate != "" {
 					ordered[idx].ReleaseDate = a.ReleaseDate
 				}
@@ -237,6 +248,7 @@ func GetDeezerArtistAlbums(id int, limit int) ([]DeezerAlbum, error) {
 		return ordered, nil
 	}
 
+	// Enrichment is expensive, only do it for a reasonable "candidate" window
 	candidateCount := want * 6
 	if candidateCount < 30 {
 		candidateCount = 30
@@ -256,14 +268,16 @@ func GetDeezerArtistAlbums(id int, limit int) ([]DeezerAlbum, error) {
 
 	albums := ordered[:candidateCount]
 
+	// Fetch album details concurrently, but cap concurrency to avoid rate limits
 	sem := make(chan struct{}, 6)
 	var wg sync.WaitGroup
 
 	for i := range albums {
 		wg.Add(1)
-		go func(a *DeezerAlbum) {
+		go func(a *DeezerAlbum) { // enrich albums in parallel
 			defer wg.Done()
 			sem <- struct{}{}
+			// Album endpoints often have more complete metadata than artist albums lists
 			full, err := GetDeezerAlbum(a.ID)
 			if err == nil && full != nil {
 				a.ReleaseDate = full.ReleaseDate
@@ -305,14 +319,16 @@ func GetDeezerArtistAlbums(id int, limit int) ([]DeezerAlbum, error) {
 
 	wg.Wait()
 
-	sort.SliceStable(albums, func(i, j int) bool {
+	sort.SliceStable(albums, func(i, j int) bool { // newest first, then stable tie-breakers
 		di, okI := ParseDeezerReleaseDate(albums[i].ReleaseDate)
 		dj, okJ := ParseDeezerReleaseDate(albums[j].ReleaseDate)
 
 		if okI && okJ && !di.Equal(dj) {
+			// Prefer newest releases when both dates are parseable
 			return di.After(dj)
 		}
 		if okI != okJ {
+			// Prefer albums with parseable dates
 			return okI
 		}
 
@@ -332,6 +348,7 @@ func GetDeezerArtistAlbums(id int, limit int) ([]DeezerAlbum, error) {
 	return albums, nil
 }
 
+// GetDeezerAlbum fetches full album details by Deezer album ID
 func GetDeezerAlbum(id int) (*DeezerAlbum, error) {
 	if id <= 0 {
 		return nil, fmt.Errorf("invalid deezer album id")
@@ -349,8 +366,7 @@ func GetDeezerAlbum(id int) (*DeezerAlbum, error) {
 	return &album, nil
 }
 
-// ParseDeezerReleaseDate parses Deezer `release_date` values.
-// Typically it's "YYYY-MM-DD", but be tolerant of RFC3339 timestamps too.
+// ParseDeezerReleaseDate parses the main release date formats used by Deezer
 func ParseDeezerReleaseDate(s string) (time.Time, bool) {
 	s = strings.TrimSpace(s)
 	if s == "" || s == "0000-00-00" {
@@ -359,7 +375,8 @@ func ParseDeezerReleaseDate(s string) (time.Time, bool) {
 	if t, err := time.Parse("2006-01-02", s); err == nil {
 		return t, true
 	}
-	// Some APIs occasionally return timestamps; be tolerant.
+
+	// Some endpoints return RFC3339 timestamps instead of yyyy-mm-dd
 	if t, err := time.Parse(time.RFC3339Nano, s); err == nil {
 		return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC), true
 	}
@@ -367,6 +384,7 @@ func ParseDeezerReleaseDate(s string) (time.Time, bool) {
 		return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC), true
 	}
 	if len(s) >= 10 {
+		// Last-resort: keep only the date portion
 		if t, err := time.Parse("2006-01-02", s[:10]); err == nil {
 			return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC), true
 		}

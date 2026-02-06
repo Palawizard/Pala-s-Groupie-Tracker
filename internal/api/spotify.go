@@ -82,10 +82,12 @@ var spotifyTokenCache = struct {
 	expiresAt time.Time
 }{}
 
+// spotifyClose closes a response body and ignores any close error
 func spotifyClose(c io.Closer) {
 	_ = c.Close()
 }
 
+// spotifyNewJSONRequest creates an HTTP request with Spotify-friendly headers
 func spotifyNewJSONRequest(method, u string, body io.Reader, token string) (*http.Request, error) {
 	req, err := http.NewRequest(method, u, body)
 	if err != nil {
@@ -93,11 +95,13 @@ func spotifyNewJSONRequest(method, u string, body io.Reader, token string) (*htt
 	}
 	req.Header.Set("Accept", "application/json")
 	if token != "" {
+		// Most Spotify endpoints require a bearer token
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
 	return req, nil
 }
 
+// spotifyDoJSON executes req, checks the expected status code, then decodes JSON into out
 func spotifyDoJSON(req *http.Request, expectedStatus int, out any) error {
 	resp, err := spotifyHTTP.Do(req)
 	if err != nil {
@@ -110,12 +114,14 @@ func spotifyDoJSON(req *http.Request, expectedStatus int, out any) error {
 	}
 
 	if out == nil {
+		// Some calls only need the status check
 		return nil
 	}
 
 	return json.NewDecoder(resp.Body).Decode(out)
 }
 
+// getSpotifyToken obtains and caches an app access token using the client credentials flow
 func getSpotifyToken() (string, error) {
 	clientID := os.Getenv("SPOTIFY_CLIENT_ID")
 	clientSecret := os.Getenv("SPOTIFY_CLIENT_SECRET")
@@ -125,6 +131,7 @@ func getSpotifyToken() (string, error) {
 
 	spotifyTokenCache.mu.Lock()
 	if spotifyTokenCache.token != "" && time.Now().Before(spotifyTokenCache.expiresAt.Add(-30*time.Second)) {
+		// Refresh a bit early to avoid edge cases during concurrent requests
 		t := spotifyTokenCache.token
 		spotifyTokenCache.mu.Unlock()
 		return t, nil
@@ -156,6 +163,7 @@ func getSpotifyToken() (string, error) {
 		return "", fmt.Errorf("empty spotify access token")
 	}
 
+	// Spotify's expires_in is in seconds
 	expiresAt := time.Now().Add(time.Duration(body.ExpiresIn) * time.Second)
 
 	spotifyTokenCache.mu.Lock()
@@ -166,6 +174,7 @@ func getSpotifyToken() (string, error) {
 	return body.AccessToken, nil
 }
 
+// SearchSpotifyArtists searches Spotify for artists matching query
 func SearchSpotifyArtists(query string) ([]SpotifyArtist, error) {
 	token, err := getSpotifyToken()
 	if err != nil {
@@ -176,11 +185,13 @@ func SearchSpotifyArtists(query string) ([]SpotifyArtist, error) {
 	params := url.Values{}
 	q := strings.TrimSpace(query)
 	if q == "" {
+		// Empty queries return 400, keep the UI functional with a default search
 		q = "a"
 	}
 	params.Set("q", q)
 	params.Set("type", "artist")
 	params.Set("limit", "30")
+	// Market can affect which artists are returned
 	params.Set("market", "US")
 
 	req, err := spotifyNewJSONRequest("GET", baseURL+"?"+params.Encode(), nil, token)
@@ -196,6 +207,7 @@ func SearchSpotifyArtists(query string) ([]SpotifyArtist, error) {
 	return body.Artists.Items, nil
 }
 
+// GetSpotifyArtist fetches an artist by Spotify ID
 func GetSpotifyArtist(id string) (*SpotifyArtist, error) {
 	token, err := getSpotifyToken()
 	if err != nil {
@@ -216,6 +228,7 @@ func GetSpotifyArtist(id string) (*SpotifyArtist, error) {
 	return &artist, nil
 }
 
+// GetSpotifyArtistTopTracks returns the artist's top tracks for a given market
 func GetSpotifyArtistTopTracks(id string, market string) ([]SpotifyTrack, error) {
 	token, err := getSpotifyToken()
 	if err != nil {
@@ -224,6 +237,7 @@ func GetSpotifyArtistTopTracks(id string, market string) ([]SpotifyTrack, error)
 
 	m := strings.TrimSpace(market)
 	if m == "" {
+		// Spotify requires a market, default to US
 		m = "US"
 	}
 
@@ -244,6 +258,7 @@ func GetSpotifyArtistTopTracks(id string, market string) ([]SpotifyTrack, error)
 	return body.Tracks, nil
 }
 
+// GetSpotifyArtistAlbums returns a de-duplicated and sorted list of an artist's latest albums and singles
 func GetSpotifyArtistAlbums(id string, market string, limit int) ([]SpotifyAlbum, error) {
 	token, err := getSpotifyToken()
 	if err != nil {
@@ -254,9 +269,7 @@ func GetSpotifyArtistAlbums(id string, market string, limit int) ([]SpotifyAlbum
 	if m == "" {
 		m = "US"
 	}
-	// `limit` is the number of items we want to return. We fetch more than that
-	// and then sort/slice locally because Spotify's ordering can be inconsistent
-	// across include_groups/markets for some artists.
+
 	want := limit
 	if want <= 0 {
 		want = 10
@@ -286,12 +299,14 @@ func GetSpotifyArtistAlbums(id string, market string, limit int) ([]SpotifyAlbum
 		return nil, err
 	}
 
+	// The API can return duplicates across include_groups, merge by ID
 	byID := make(map[string]SpotifyAlbum, len(body.Items))
 	for _, a := range body.Items {
 		if a.ID == "" {
 			continue
 		}
 		if existing, ok := byID[a.ID]; ok {
+			// Keep the entry with the best (latest) release_date we can parse
 			da, oka := ParseSpotifyReleaseDate(a.ReleaseDate)
 			de, oke := ParseSpotifyReleaseDate(existing.ReleaseDate)
 			if oka && (!oke || da.After(de)) {
@@ -307,14 +322,16 @@ func GetSpotifyArtistAlbums(id string, market string, limit int) ([]SpotifyAlbum
 		merged = append(merged, a)
 	}
 
-	sort.SliceStable(merged, func(i, j int) bool {
+	sort.SliceStable(merged, func(i, j int) bool { // newest first, then stable tie-breakers
 		di, okI := ParseSpotifyReleaseDate(merged[i].ReleaseDate)
 		dj, okJ := ParseSpotifyReleaseDate(merged[j].ReleaseDate)
 
 		if okI && okJ && !di.Equal(dj) {
+			// Prefer newest releases when both dates are parseable
 			return di.After(dj)
 		}
 		if okI != okJ {
+			// Prefer albums with parseable dates
 			return okI
 		}
 
@@ -334,17 +351,14 @@ func GetSpotifyArtistAlbums(id string, market string, limit int) ([]SpotifyAlbum
 	return merged, nil
 }
 
-// ParseSpotifyReleaseDate parses Spotify `release_date` values which can be:
-// - "YYYY-MM-DD"
-// - "YYYY-MM"
-// - "YYYY"
-// Some APIs may return full timestamps; we accept RFC3339/RFC3339Nano too.
+// ParseSpotifyReleaseDate parses Spotify's release_date which can be yyyy, yyyy-mm, or yyyy-mm-dd
 func ParseSpotifyReleaseDate(s string) (time.Time, bool) {
 	s = strings.TrimSpace(s)
 	if s == "" {
 		return time.Time{}, false
 	}
 
+	// Some endpoints return timestamps, normalize them to a day-level value
 	if t, err := time.Parse(time.RFC3339Nano, s); err == nil {
 		return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC), true
 	}
@@ -352,6 +366,7 @@ func ParseSpotifyReleaseDate(s string) (time.Time, bool) {
 		return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC), true
 	}
 	if len(s) >= 10 {
+		// Handle strings like `yyyy-mm-ddTHH:mm:ssZ` by trimming first
 		if t, err := time.Parse("2006-01-02", s[:10]); err == nil {
 			return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC), true
 		}
@@ -361,9 +376,11 @@ func ParseSpotifyReleaseDate(s string) (time.Time, bool) {
 		return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC), true
 	}
 	if t, err := time.Parse("2006-01", s); err == nil {
+		// Month-only dates default to the first of the month for sorting
 		return time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, time.UTC), true
 	}
 	if t, err := time.Parse("2006", s); err == nil {
+		// Year-only dates default to Jan 1 for sorting
 		return time.Date(t.Year(), time.January, 1, 0, 0, 0, 0, time.UTC), true
 	}
 

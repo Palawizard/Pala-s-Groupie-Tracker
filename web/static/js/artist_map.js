@@ -1,10 +1,12 @@
-(() => {
+(() => { // IIFE to avoid leaking globals
+  // Artist map rendering for Groupie concert locations (Leaflet + OSM tiles)
   const mapEl = document.getElementById("map");
   const dataEl = document.getElementById("artist_locations_json");
   if (!mapEl || !dataEl) return;
 
   let locations;
   try {
+    // Locations come from a <script type="application/json"> tag in the template
     locations = JSON.parse(dataEl.textContent || "[]");
   } catch {
     return;
@@ -20,6 +22,7 @@
     return;
   }
 
+  // Disable scroll wheel zoom to avoid trapping the page scroll
   const map = window.L.map(mapEl, { scrollWheelZoom: false });
 
   window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -38,6 +41,7 @@
     const name = String(loc.name || "").trim() || "Unknown location";
     const dates = Array.isArray(loc.dates) ? loc.dates : [];
 
+    // Build popup content with DOM nodes to avoid HTML injection
     const popup = document.createElement("div");
     const title = document.createElement("div");
     title.textContent = name;
@@ -57,16 +61,19 @@
     }
 
     window.L.marker([lat, lng]).addTo(map).bindPopup(popup);
+    // Use bounds to auto-fit the map view to all markers
     bounds.push([lat, lng]);
   }
 
   if (bounds.length === 0) {
+    // No valid points, show a generic world view
     map.setView([0, 0], 2);
     return;
   }
 
   map.fitBounds(bounds, { padding: [24, 24] });
 
+  // showMessage replaces the map with a small centered message
   function showMessage(message) {
     mapEl.innerHTML = "";
     const wrap = document.createElement("div");
@@ -77,7 +84,7 @@
     wrap.style.alignItems = "center";
     wrap.style.justifyContent = "center";
     wrap.style.fontSize = "12px";
-    wrap.style.color = "rgb(148 163 184)"; // slate-400-ish
+    wrap.style.color = "rgb(148 163 184)"; // Tailwind slate-400
     mapEl.appendChild(wrap);
   }
 })();
