@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -43,6 +44,7 @@ type DeezerArtist struct {
 type DeezerAlbum struct {
 	ID             int    `json:"id"`
 	Title          string `json:"title"`
+	RecordType     string `json:"record_type"`
 	Link           string `json:"link"`
 	Share          string `json:"share"`
 	Cover          string `json:"cover"`
@@ -182,22 +184,77 @@ func GetDeezerArtistAlbums(id int, limit int) ([]DeezerAlbum, error) {
 	if id <= 0 {
 		return nil, fmt.Errorf("invalid deezer artist id")
 	}
-	if limit <= 0 || limit > 50 {
-		limit = 10
+	want := limit
+	if want <= 0 {
+		want = 10
+	}
+	if want > 50 {
+		want = 50
 	}
 
-	params := url.Values{}
-	params.Set("limit", strconv.Itoa(limit))
+	// Deezer can expose albums vs singles/EP via a `type` filter depending on the artist.
+	// To keep the "Latest releases" section consistent, try multiple types and merge.
+	fetch := 50
+	recordTypes := []string{"", "single", "ep", "album"}
 
-	var payload deezerListResponse[DeezerAlbum]
-	if err := deezerGetJSON(deezerBaseURL+"/artist/"+strconv.Itoa(id)+"/albums?"+params.Encode(), &payload); err != nil {
-		return nil, err
+	ordered := make([]DeezerAlbum, 0, fetch)
+	seen := make(map[int]int, fetch)
+	for _, rt := range recordTypes {
+		params := url.Values{}
+		params.Set("limit", strconv.Itoa(fetch))
+		if strings.TrimSpace(rt) != "" {
+			params.Set("type", rt)
+		}
+
+		var payload deezerListResponse[DeezerAlbum]
+		if err := deezerGetJSON(deezerBaseURL+"/artist/"+strconv.Itoa(id)+"/albums?"+params.Encode(), &payload); err != nil {
+			// The unfiltered request is required; typed requests are best-effort.
+			if strings.TrimSpace(rt) == "" {
+				return nil, err
+			}
+			continue
+		}
+
+		for _, a := range payload.Data {
+			if a.ID <= 0 {
+				continue
+			}
+			if idx, ok := seen[a.ID]; ok {
+				if ordered[idx].ReleaseDate == "" && a.ReleaseDate != "" {
+					ordered[idx].ReleaseDate = a.ReleaseDate
+				}
+				if ordered[idx].RecordType == "" && a.RecordType != "" {
+					ordered[idx].RecordType = a.RecordType
+				}
+				continue
+			}
+			seen[a.ID] = len(ordered)
+			ordered = append(ordered, a)
+		}
 	}
 
-	albums := payload.Data
-	if len(albums) == 0 {
-		return albums, nil
+	if len(ordered) == 0 {
+		return ordered, nil
 	}
+
+	candidateCount := want * 6
+	if candidateCount < 30 {
+		candidateCount = 30
+	}
+	if candidateCount > 50 {
+		candidateCount = 50
+	}
+	if candidateCount > len(ordered) {
+		candidateCount = len(ordered)
+	}
+	if candidateCount < want {
+		candidateCount = want
+		if candidateCount > len(ordered) {
+			candidateCount = len(ordered)
+		}
+	}
+
+	albums := ordered[:candidateCount]
 
 	sem := make(chan struct{}, 6)
 	var wg sync.WaitGroup
@@ -210,6 +267,9 @@ func GetDeezerArtistAlbums(id int, limit int) ([]DeezerAlbum, error) {
 			full, err := GetDeezerAlbum(a.ID)
 			if err == nil && full != nil {
 				a.ReleaseDate = full.ReleaseDate
+				if a.RecordType == "" {
+					a.RecordType = full.RecordType
+				}
 				a.NbTracks = full.NbTracks
 				a.Fans = full.Fans
 				a.ExplicitLyrics = full.ExplicitLyrics
@@ -244,6 +304,31 @@ func GetDeezerArtistAlbums(id int, limit int) ([]DeezerAlbum, error) {
 	}
 
 	wg.Wait()
+
+	sort.SliceStable(albums, func(i, j int) bool {
+		di, okI := ParseDeezerReleaseDate(albums[i].ReleaseDate)
+		dj, okJ := ParseDeezerReleaseDate(albums[j].ReleaseDate)
+
+		if okI && okJ && !di.Equal(dj) {
+			return di.After(dj)
+		}
+		if okI != okJ {
+			return okI
+		}
+
+		ti := strings.ToLower(albums[i].Title)
+		tj := strings.ToLower(albums[j].Title)
+		if ti != tj {
+			return ti < tj
+		}
+
+		return albums[i].ID < albums[j].ID
+	})
+
+	if len(albums) > want {
+		albums = albums[:want]
+	}
+
 	return albums, nil
 }
 
@@ -262,4 +347,29 @@ func GetDeezerAlbum(id int) (*DeezerAlbum, error) {
 	}
 
 	return &album, nil
+}
+
+// ParseDeezerReleaseDate parses Deezer `release_date` values.
+// Typically it's "YYYY-MM-DD", but be tolerant of RFC3339 timestamps too.
+func ParseDeezerReleaseDate(s string) (time.Time, bool) {
+	s = strings.TrimSpace(s)
+	if s == "" || s == "0000-00-00" {
+		return time.Time{}, false
+	}
+	if t, err := time.Parse("2006-01-02", s); err == nil {
+		return t, true
+	}
+	// Some APIs occasionally return timestamps; be tolerant.
+	if t, err := time.Parse(time.RFC3339Nano, s); err == nil {
+		return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC), true
+	}
+	if t, err := time.Parse(time.RFC3339, s); err == nil {
+		return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC), true
+	}
+	if len(s) >= 10 {
+		if t, err := time.Parse("2006-01-02", s[:10]); err == nil {
+			return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC), true
+		}
+	}
+	return time.Time{}, false
 }

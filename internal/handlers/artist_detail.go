@@ -8,7 +8,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 	"unicode"
 
 	"palasgroupietracker/internal/api"
@@ -334,8 +333,8 @@ func handleDeezerArtistDetail(w http.ResponseWriter, r *http.Request, idSegment 
 
 	if len(latestAlbums) > 1 {
 		sort.SliceStable(latestAlbums, func(i, j int) bool {
-			di, okI := parseDeezerReleaseDate(latestAlbums[i].ReleaseDate)
-			dj, okJ := parseDeezerReleaseDate(latestAlbums[j].ReleaseDate)
+			di, okI := api.ParseDeezerReleaseDate(latestAlbums[i].ReleaseDate)
+			dj, okJ := api.ParseDeezerReleaseDate(latestAlbums[j].ReleaseDate)
 
 			if okI && okJ && !di.Equal(dj) {
 				return di.After(dj)
@@ -518,17 +517,6 @@ func upscaleAppleArtwork(u string, size int) string {
 		return strings.Join(parts, "/")
 	}
 	return u
-}
-
-func parseDeezerReleaseDate(s string) (time.Time, bool) {
-	s = strings.TrimSpace(s)
-	if s == "" || s == "0000-00-00" {
-		return time.Time{}, false
-	}
-	if t, err := time.Parse("2006-01-02", s); err == nil {
-		return t, true
-	}
-	return time.Time{}, false
 }
 
 func isLikelySpotifyID(s string) bool {

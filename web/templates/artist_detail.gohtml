@@ -361,7 +361,7 @@
                                         {{ .Title }}
                                     </p>
                                     <p class="text-xs text-slate-400">
-                                        {{ .ReleaseDate }}{{ if gt .NbTracks 0 }} • {{ .NbTracks }} tracks{{ end }}{{ if gt .Fans 0 }} • {{ .Fans }} fans{{ end }}
+                                        {{ if .RecordType }}{{ .RecordType }} • {{ end }}{{ .ReleaseDate }}{{ if gt .NbTracks 0 }} • {{ .NbTracks }} tracks{{ end }}{{ if gt .Fans 0 }} • {{ .Fans }} fans{{ end }}
                                     </p>
                                 </div>
                             </div>
