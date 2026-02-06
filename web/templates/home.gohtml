@@ -63,9 +63,9 @@
             <div class="marquee rounded-xl border border-slate-800 bg-slate-900/40 px-4">
                 <div class="marquee-track marquee-left">
                     {{ range .Featured }}
-                        <a href="{{ .LinkURL }}" class="group w-[240px] shrink-0 rounded-xl border border-slate-800 bg-slate-950/70 p-3 hover:border-emerald-500/70 hover:bg-slate-950 transition-colors">
+                        <a href="{{ .LinkURL }}" class="group w-[320px] shrink-0 rounded-2xl border border-slate-800 bg-slate-950/70 p-4 hover:border-emerald-500/70 hover:bg-slate-950 transition-colors">
                             <div class="flex items-center gap-3">
-                                <div class="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-slate-800 bg-slate-900">
+                                <div class="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-slate-800 bg-slate-900">
                                     {{ if .ImageURL }}
                                         <img src="{{ .ImageURL }}" alt="{{ .Name }}" class="h-full w-full object-cover">
                                     {{ else }}
@@ -74,18 +74,18 @@
                                 </div>
                                 <div class="min-w-0 flex-1">
                                     <div class="flex items-center justify-between gap-2">
-                                        <p class="text-sm font-semibold truncate group-hover:text-emerald-300 transition-colors">{{ .Name }}</p>
-                                        <span class="shrink-0 rounded-full border border-slate-800 bg-slate-900/60 px-2 py-0.5 text-[10px] text-slate-300">{{ .Badge }}</span>
+                                        <p class="text-base font-semibold truncate group-hover:text-emerald-300 transition-colors">{{ .Name }}</p>
+                                        <span class="shrink-0 rounded-full border border-slate-800 bg-slate-900/60 px-2.5 py-1 text-[11px] text-slate-300">{{ .Badge }}</span>
                                     </div>
-                                    <p class="text-xs text-slate-400 truncate">{{ .Meta }}</p>
+                                    <p class="text-sm text-slate-400 truncate">{{ .Meta }}</p>
                                 </div>
                             </div>
                         </a>
                     {{ end }}
                     {{ range .Featured }}
-                        <a aria-hidden="true" tabindex="-1" href="{{ .LinkURL }}" class="group w-[240px] shrink-0 rounded-xl border border-slate-800 bg-slate-950/70 p-3 hover:border-emerald-500/70 hover:bg-slate-950 transition-colors">
+                        <a aria-hidden="true" tabindex="-1" href="{{ .LinkURL }}" class="group w-[320px] shrink-0 rounded-2xl border border-slate-800 bg-slate-950/70 p-4 hover:border-emerald-500/70 hover:bg-slate-950 transition-colors">
                             <div class="flex items-center gap-3">
-                                <div class="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-slate-800 bg-slate-900">
+                                <div class="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-slate-800 bg-slate-900">
                                     {{ if .ImageURL }}
                                         <img src="{{ .ImageURL }}" alt="{{ .Name }}" class="h-full w-full object-cover">
                                     {{ else }}
@@ -94,55 +94,10 @@
                                 </div>
                                 <div class="min-w-0 flex-1">
                                     <div class="flex items-center justify-between gap-2">
-                                        <p class="text-sm font-semibold truncate group-hover:text-emerald-300 transition-colors">{{ .Name }}</p>
-                                        <span class="shrink-0 rounded-full border border-slate-800 bg-slate-900/60 px-2 py-0.5 text-[10px] text-slate-300">{{ .Badge }}</span>
+                                        <p class="text-base font-semibold truncate group-hover:text-emerald-300 transition-colors">{{ .Name }}</p>
+                                        <span class="shrink-0 rounded-full border border-slate-800 bg-slate-900/60 px-2.5 py-1 text-[11px] text-slate-300">{{ .Badge }}</span>
                                     </div>
-                                    <p class="text-xs text-slate-400 truncate">{{ .Meta }}</p>
-                                </div>
-                            </div>
-                        </a>
-                    {{ end }}
-                </div>
-            </div>
-
-            <div class="marquee rounded-xl border border-slate-800 bg-slate-900/30 px-4">
-                <div class="marquee-track marquee-right">
-                    {{ range .Featured }}
-                        <a href="{{ .LinkURL }}" class="group w-[240px] shrink-0 rounded-xl border border-slate-800 bg-slate-950/60 p-3 hover:border-emerald-500/70 hover:bg-slate-950 transition-colors">
-                            <div class="flex items-center gap-3">
-                                <div class="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-slate-800 bg-slate-900">
-                                    {{ if .ImageURL }}
-                                        <img src="{{ .ImageURL }}" alt="{{ .Name }}" class="h-full w-full object-cover">
-                                    {{ else }}
-                                        <div class="h-full w-full bg-slate-900"></div>
-                                    {{ end }}
-                                </div>
-                                <div class="min-w-0 flex-1">
-                                    <div class="flex items-center justify-between gap-2">
-                                        <p class="text-sm font-semibold truncate group-hover:text-emerald-300 transition-colors">{{ .Name }}</p>
-                                        <span class="shrink-0 rounded-full border border-slate-800 bg-slate-900/60 px-2 py-0.5 text-[10px] text-slate-300">{{ .Badge }}</span>
-                                    </div>
-                                    <p class="text-xs text-slate-400 truncate">{{ .Meta }}</p>
-                                </div>
-                            </div>
-                        </a>
-                    {{ end }}
-                    {{ range .Featured }}
-                        <a aria-hidden="true" tabindex="-1" href="{{ .LinkURL }}" class="group w-[240px] shrink-0 rounded-xl border border-slate-800 bg-slate-950/60 p-3 hover:border-emerald-500/70 hover:bg-slate-950 transition-colors">
-                            <div class="flex items-center gap-3">
-                                <div class="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-slate-800 bg-slate-900">
-                                    {{ if .ImageURL }}
-                                        <img src="{{ .ImageURL }}" alt="{{ .Name }}" class="h-full w-full object-cover">
-                                    {{ else }}
-                                        <div class="h-full w-full bg-slate-900"></div>
-                                    {{ end }}
-                                </div>
-                                <div class="min-w-0 flex-1">
-                                    <div class="flex items-center justify-between gap-2">
-                                        <p class="text-sm font-semibold truncate group-hover:text-emerald-300 transition-colors">{{ .Name }}</p>
-                                        <span class="shrink-0 rounded-full border border-slate-800 bg-slate-900/60 px-2 py-0.5 text-[10px] text-slate-300">{{ .Badge }}</span>
-                                    </div>
-                                    <p class="text-xs text-slate-400 truncate">{{ .Meta }}</p>
+                                    <p class="text-sm text-slate-400 truncate">{{ .Meta }}</p>
                                 </div>
                             </div>
                         </a>
