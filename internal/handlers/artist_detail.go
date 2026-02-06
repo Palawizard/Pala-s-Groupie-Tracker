@@ -8,9 +8,11 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"unicode"
 
 	"palasgroupietracker/internal/api"
+	"palasgroupietracker/internal/geo"
 )
 
 type MapLocation struct {
@@ -19,6 +21,8 @@ type MapLocation struct {
 	Lng   float64  `json:"lng"`
 	Dates []string `json:"dates"`
 }
+
+var groupieGeocoder = geo.NewGeocoder()
 
 type ArtistDetailPageData struct {
 	Title     string
@@ -102,18 +106,59 @@ func handleGroupieArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 	}
 
 	var locations []MapLocation
-	for name, dates := range relation.DatesLocations {
-		lat, lng, ok := lookupCoords(name)
-		if !ok {
-			continue
-		}
-		locations = append(locations, MapLocation{
-			Name:  name,
-			Lat:   lat,
-			Lng:   lng,
-			Dates: dates,
-		})
+	keys := make([]string, 0, len(relation.DatesLocations))
+	for k := range relation.DatesLocations {
+		keys = append(keys, k)
 	}
+	sort.Strings(keys)
+
+	// Bound geocoding work per request so the page stays responsive even if an artist
+	// has a lot of locations.
+	const maxLocations = 25
+	if len(keys) > maxLocations {
+		keys = keys[:maxLocations]
+	}
+
+	locations = make([]MapLocation, 0, len(keys))
+	var mu sync.Mutex
+	sem := make(chan struct{}, 4)
+	var wg sync.WaitGroup
+
+	for _, name := range keys {
+		dates := relation.DatesLocations[name]
+		place, countryCode, display := geo.QueryFromLocationKey(name)
+
+		wg.Add(1)
+		go func(place, countryCode, display string, dates []string) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
+			res, ok, geoErr := groupieGeocoder.Geocode(r.Context(), place, countryCode)
+			if geoErr != nil || !ok {
+				return
+			}
+
+			if strings.TrimSpace(res.Display) == "" {
+				res.Display = display
+			}
+
+			mu.Lock()
+			locations = append(locations, MapLocation{
+				Name:  res.Display,
+				Lat:   res.Lat,
+				Lng:   res.Lng,
+				Dates: dates,
+			})
+			mu.Unlock()
+		}(place, countryCode, display, dates)
+	}
+
+	wg.Wait()
+
+	sort.SliceStable(locations, func(i, j int) bool {
+		return strings.ToLower(locations[i].Name) < strings.ToLower(locations[j].Name)
+	})
 
 	locBytes, err := json.Marshal(locations)
 	if err != nil {
@@ -561,37 +606,4 @@ func isNotFoundError(err error) bool {
 		return true
 	}
 	return false
-}
-
-func lookupCoords(location string) (float64, float64, bool) {
-	coords := map[string][2]float64{
-		"london-uk":                 {51.5074, -0.1278},
-		"lausanne-switzerland":      {46.5197, 6.6323},
-		"lyon-france":               {45.764, 4.8357},
-		"los_angeles-usa":           {34.0522, -118.2437},
-		"georgia-usa":               {32.1656, -82.9001},
-		"north_carolina-usa":        {35.7596, -79.0193},
-		"victoria-australia":        {-37.8136, 144.9631},
-		"queensland-australia":      {-20.9176, 142.7028},
-		"new_south_wales-australia": {-31.2532, 146.9211},
-		"auckland-new_zealand":      {-36.8485, 174.7633},
-		"dunedin-new_zealand":       {-45.8788, 170.5028},
-		"penrose-new_zealand":       {-36.9075, 174.8167},
-		"saitama-japan":             {35.8617, 139.6455},
-		"osaka-japan":               {34.6937, 135.5023},
-		"nagoya-japan":              {35.1815, 136.9066},
-		"yogyakarta-indonesia":      {-7.7956, 110.3695},
-		"budapest-hungary":          {47.4979, 19.0402},
-		"minsk-belarus":             {53.9006, 27.559},
-		"bratislava-slovakia":       {48.1486, 17.1077},
-		"noumea-new_caledonia":      {-22.2711, 166.438},
-		"papeete-french_polynesia":  {-17.5516, -149.5585},
-		"playa_del_carmen-mexico":   {20.6296, -87.0739},
-	}
-
-	if c, ok := coords[location]; ok {
-		return c[0], c[1], true
-	}
-
-	return 0, 0, false
 }
