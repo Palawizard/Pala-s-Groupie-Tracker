@@ -3,6 +3,11 @@
     const toggle = document.getElementById("source-toggle");
     if (!toggle) return;
 
+    function getBasePath() {
+        const bp = document.body ? (document.body.getAttribute("data-base-path") || "") : "";
+        return String(bp || "").replace(/\/+$/, "");
+    }
+
     // handleClick switches the `source` query parameter and navigates
     function handleClick(event) {
         // Support clicks on nested elements inside the button
@@ -12,12 +17,14 @@
         const source = btn.getAttribute("data-target");
         if (!source) return;
 
-        const path = window.location.pathname || "/";
+        const basePath = getBasePath();
+        const fullPath = window.location.pathname || "/";
+        const path = (basePath && fullPath.indexOf(basePath) === 0) ? (fullPath.slice(basePath.length) || "/") : fullPath;
         const isArtistDetail = /^\/artists\/[^/]+$/.test(path) && path !== "/artists/ajax";
 
         // Artist detail pages don't have stable IDs across sources, so go back to search
         if (isArtistDetail) {
-            const url = new URL("/artists", window.location.origin);
+            const url = new URL((basePath || "") + "/artists", window.location.origin);
             url.searchParams.set("source", source);
 
             const name = (document.querySelector("main h1")?.textContent || "").trim();

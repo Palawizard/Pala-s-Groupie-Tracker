@@ -21,12 +21,14 @@ type HomePageData struct {
 	Title     string
 	Source    string
 	ActiveNav string
+	BasePath  string
 	Featured  []HomeArtistCard
 }
 
 // HomeHandler renders the homepage with a featured artists carousel
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	source := getSource(r)
+	basePath := getBasePath(r)
 
 	tmpl, err := template.ParseFiles(
 		"web/templates/layout.gohtml",
@@ -38,7 +40,7 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Featured cards are source-specific (Groupie vs Spotify vs Deezer vs Apple)
-	featured, err := buildHomeFeatured(source)
+	featured, err := buildHomeFeatured(basePath, source)
 	if err != nil {
 		http.Error(w, "failed to load home", http.StatusInternalServerError)
 		return
@@ -48,6 +50,7 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		Title:     "Groupie Tracker",
 		Source:    source,
 		ActiveNav: "home",
+		BasePath:  basePath,
 		Featured:  featured,
 	}
 
@@ -59,7 +62,7 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // buildHomeFeatured builds a small set of cards for the homepage marquee
-func buildHomeFeatured(source string) ([]HomeArtistCard, error) {
+func buildHomeFeatured(basePath, source string) ([]HomeArtistCard, error) {
 	// Keep the marquee lightweight so the home page renders quickly
 	desired := 24
 
@@ -94,7 +97,7 @@ func buildHomeFeatured(source string) ([]HomeArtistCard, error) {
 			out = append(out, HomeArtistCard{
 				Name:     a.Name,
 				ImageURL: imageURL,
-				LinkURL:  "/artists/" + a.ID + "?source=spotify",
+				LinkURL:  basePath + "/artists/" + a.ID + "?source=spotify",
 				Meta:     meta,
 				Badge:    "Spotify",
 			})
@@ -139,7 +142,7 @@ func buildHomeFeatured(source string) ([]HomeArtistCard, error) {
 			out = append(out, HomeArtistCard{
 				Name:     a.Name,
 				ImageURL: imageURL,
-				LinkURL:  "/artists/" + strconv.Itoa(a.ID) + "?source=deezer",
+				LinkURL:  basePath + "/artists/" + strconv.Itoa(a.ID) + "?source=deezer",
 				Meta:     meta,
 				Badge:    "Deezer",
 			})
@@ -171,7 +174,7 @@ func buildHomeFeatured(source string) ([]HomeArtistCard, error) {
 			out = append(out, HomeArtistCard{
 				Name:     a.ArtistName,
 				ImageURL: artists[i].ArtworkURL,
-				LinkURL:  "/artists/" + strconv.Itoa(a.ArtistID) + "?source=apple",
+				LinkURL:  basePath + "/artists/" + strconv.Itoa(a.ArtistID) + "?source=apple",
 				Meta:     meta,
 				Badge:    "Apple",
 			})
@@ -197,7 +200,7 @@ func buildHomeFeatured(source string) ([]HomeArtistCard, error) {
 		out = append(out, HomeArtistCard{
 			Name:     a.Name,
 			ImageURL: a.Image,
-			LinkURL:  "/artists/" + strconv.Itoa(a.ID) + "?source=groupie",
+			LinkURL:  basePath + "/artists/" + strconv.Itoa(a.ID) + "?source=groupie",
 			// Keep metadata short so cards stay visually balanced
 			Meta:  fmt.Sprintf("Created %d • %d members", a.CreationDate, len(a.Members)),
 			Badge: "Groupie",

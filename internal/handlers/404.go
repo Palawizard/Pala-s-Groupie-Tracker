@@ -9,6 +9,7 @@ type NotFoundPageData struct {
 	Title     string
 	Source    string
 	ActiveNav string
+	BasePath  string
 }
 
 // NotFound renders the custom 404 page using the shared layout
@@ -30,6 +31,7 @@ func NotFound(w http.ResponseWriter, r *http.Request) {
 		Title:     "Page not found",
 		Source:    getSource(r),
 		ActiveNav: "",
+		BasePath:  getBasePath(r),
 	}
 
 	if err := tmpl.ExecuteTemplate(w, "layout", data); err != nil {

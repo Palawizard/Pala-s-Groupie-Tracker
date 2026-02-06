@@ -4,6 +4,11 @@
     const list = document.getElementById("artist-list");
     if (!form || !list) return;
 
+    function getBasePath() {
+        const bp = document.body ? (document.body.getAttribute("data-base-path") || "") : "";
+        return String(bp || "").replace(/\/+$/, "");
+    }
+
     const inputs = form.querySelectorAll("input, select");
     let timeoutId;
 
@@ -141,7 +146,8 @@
     // fetchArtists calls the ajax endpoint and replaces the list HTML
     function fetchArtists() {
         const query = buildQuery();
-        const url = "/artists/ajax?" + query;
+        const basePath = getBasePath();
+        const url = (basePath || "") + "/artists/ajax?" + query;
 
         fetch(url, {
             headers: {
