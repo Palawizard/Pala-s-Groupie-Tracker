@@ -22,6 +22,7 @@ type MapLocation struct {
 	Dates []string `json:"dates"`
 }
 
+// Shared geocoder instance keeps a warm cache across requests
 var groupieGeocoder = geo.NewGeocoder()
 
 type ArtistDetailPageData struct {
@@ -58,14 +59,14 @@ type ArtistDetailPageData struct {
 	HasWiki       bool
 }
 
+// ArtistDetailHandler routes to the correct detail handler based on the `source` query parameter
 func ArtistDetailHandler(w http.ResponseWriter, r *http.Request) {
 	source := getSource(r)
+	// The router is registered as `/artists/`, so the last segment is the ID
 	idSegment := path.Base(r.URL.Path)
 
-	// "/artists/" can reach this handler due to the mux prefix match. In that case
-	// (or if the segment clearly doesn't match the selected source), redirect to the
-	// artists search page instead of returning a 404.
 	if idSegment == "" || idSegment == "artists" {
+		// `/artists/` without an ID should go back to the list page
 		http.Redirect(w, r, "/artists?source="+source, http.StatusSeeOther)
 		return
 	}
@@ -86,9 +87,11 @@ func ArtistDetailHandler(w http.ResponseWriter, r *http.Request) {
 	handleGroupieArtistDetail(w, r, idSegment)
 }
 
+// handleGroupieArtistDetail renders the detail page for artists from the Groupie Tracker dataset
 func handleGroupieArtistDetail(w http.ResponseWriter, r *http.Request, idSegment string) {
 	id, err := strconv.Atoi(idSegment)
 	if err != nil || id <= 0 {
+		// IDs are numeric in Groupie mode
 		http.Redirect(w, r, "/artists?source=groupie", http.StatusSeeOther)
 		return
 	}
@@ -106,40 +109,44 @@ func handleGroupieArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 	}
 
 	var locations []MapLocation
+	// Sort keys for stable output and predictable map ordering
 	keys := make([]string, 0, len(relation.DatesLocations))
 	for k := range relation.DatesLocations {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
 
-	// Bound geocoding work per request so the page stays responsive even if an artist
-	// has a lot of locations.
 	const maxLocations = 25
 	if len(keys) > maxLocations {
+		// Avoid geocoding too many points in one request
 		keys = keys[:maxLocations]
 	}
 
 	locations = make([]MapLocation, 0, len(keys))
 	var mu sync.Mutex
+	// Cap concurrency since geocoding calls external providers
 	sem := make(chan struct{}, 4)
 	var wg sync.WaitGroup
 
 	for _, name := range keys {
 		dates := relation.DatesLocations[name]
+		// Convert Groupie location keys into a geocoding-friendly query
 		place, countryCode, display := geo.QueryFromLocationKey(name)
 
 		wg.Add(1)
-		go func(place, countryCode, display string, dates []string) {
+		go func(place, countryCode, display string, dates []string) { // geocode locations concurrently
 			defer wg.Done()
 			sem <- struct{}{}
-			defer func() { <-sem }()
+			defer func() { <-sem }() // release concurrency slot
 
 			res, ok, geoErr := groupieGeocoder.Geocode(r.Context(), place, countryCode)
 			if geoErr != nil || !ok {
+				// Missing geocodes are expected for noisy location strings
 				return
 			}
 
 			if strings.TrimSpace(res.Display) == "" {
+				// Fall back to our own label if the provider didn't return one
 				res.Display = display
 			}
 
@@ -156,7 +163,8 @@ func handleGroupieArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 
 	wg.Wait()
 
-	sort.SliceStable(locations, func(i, j int) bool {
+	// Sort final locations alphabetically for consistent popups
+	sort.SliceStable(locations, func(i, j int) bool { // case-insensitive by display name
 		return strings.ToLower(locations[i].Name) < strings.ToLower(locations[j].Name)
 	})
 
@@ -166,6 +174,7 @@ func handleGroupieArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 		return
 	}
 
+	// Wikipedia is best-effort, the page should still render without it
 	wikiSummary, wikiURL, wikiErr := api.FetchWikipediaSummary(artist.Name)
 	hasWiki := wikiErr == nil && wikiSummary != "" && wikiURL != ""
 
@@ -206,6 +215,7 @@ func handleGroupieArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 		AppleTopTracks:        nil,
 		AppleLatestAlbums:     nil,
 
+		// LocationsJSON is embedded into a script tag for the Leaflet map
 		LocationsJSON: template.JS(locBytes),
 		WikiSummary:   wikiSummary,
 		WikiURL:       wikiURL,
@@ -218,8 +228,10 @@ func handleGroupieArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 	}
 }
 
+// handleSpotifyArtistDetail renders the detail page for a Spotify artist ID
 func handleSpotifyArtistDetail(w http.ResponseWriter, r *http.Request, idSegment string) {
 	if !isLikelySpotifyID(idSegment) {
+		// Protect the API from random strings and keep URLs predictable
 		http.Redirect(w, r, "/artists?source=spotify", http.StatusSeeOther)
 		return
 	}
@@ -234,6 +246,7 @@ func handleSpotifyArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 		return
 	}
 
+	// Non-Groupie sources don't have concert locations
 	emptyLocations, err := json.Marshal([]MapLocation{})
 	if err != nil {
 		http.Error(w, "failed to encode concerts", http.StatusInternalServerError)
@@ -245,6 +258,7 @@ func handleSpotifyArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 
 	genre := ""
 	if len(artist.Genres) > 0 {
+		// Capitalize the first genre for nicer display
 		runes := []rune(artist.Genres[0])
 		if len(runes) > 0 {
 			runes[0] = unicode.ToUpper(runes[0])
@@ -254,6 +268,7 @@ func handleSpotifyArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 
 	listeners, err := api.FetchArtistMonthlyListeners(artist.Name)
 	if err != nil {
+		// Last.fm can fail independently, keep the rest of the page
 		listeners = 0
 	}
 
@@ -264,6 +279,7 @@ func handleSpotifyArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 
 	topTracks, err := api.GetSpotifyArtistTopTracks(artist.ID, "FR")
 	if err != nil {
+		// Tracks are optional for the page to work
 		topTracks = nil
 	}
 
@@ -273,7 +289,8 @@ func handleSpotifyArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 	}
 
 	if len(latestAlbums) > 1 {
-		sort.SliceStable(latestAlbums, func(i, j int) bool {
+		// Keep album ordering deterministic even if the API ordering changes
+		sort.SliceStable(latestAlbums, func(i, j int) bool { // newest first, then stable tie-breakers
 			di, okI := api.ParseSpotifyReleaseDate(latestAlbums[i].ReleaseDate)
 			dj, okJ := api.ParseSpotifyReleaseDate(latestAlbums[j].ReleaseDate)
 
@@ -343,6 +360,7 @@ func handleSpotifyArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 	}
 }
 
+// handleDeezerArtistDetail renders the detail page for a Deezer artist ID
 func handleDeezerArtistDetail(w http.ResponseWriter, r *http.Request, idSegment string) {
 	id, err := strconv.Atoi(idSegment)
 	if err != nil || id <= 0 {
@@ -376,6 +394,7 @@ func handleDeezerArtistDetail(w http.ResponseWriter, r *http.Request, idSegment 
 
 	topTracks, err := api.GetDeezerArtistTopTracks(artist.ID, 10)
 	if err != nil {
+		// Track lists are optional for the rest of the page
 		topTracks = nil
 	}
 
@@ -385,7 +404,8 @@ func handleDeezerArtistDetail(w http.ResponseWriter, r *http.Request, idSegment 
 	}
 
 	if len(latestAlbums) > 1 {
-		sort.SliceStable(latestAlbums, func(i, j int) bool {
+		// Sort on the backend so template rendering stays simple
+		sort.SliceStable(latestAlbums, func(i, j int) bool { // newest first, then stable tie-breakers
 			di, okI := api.ParseDeezerReleaseDate(latestAlbums[i].ReleaseDate)
 			dj, okJ := api.ParseDeezerReleaseDate(latestAlbums[j].ReleaseDate)
 
@@ -455,6 +475,7 @@ func handleDeezerArtistDetail(w http.ResponseWriter, r *http.Request, idSegment 
 	}
 }
 
+// handleAppleArtistDetail renders the detail page for an iTunes artist ID
 func handleAppleArtistDetail(w http.ResponseWriter, r *http.Request, idSegment string) {
 	id, err := strconv.Atoi(idSegment)
 	if err != nil || id <= 0 {
@@ -498,9 +519,11 @@ func handleAppleArtistDetail(w http.ResponseWriter, r *http.Request, idSegment s
 
 	hero := ""
 	if len(latestAlbums) > 0 {
+		// Use the newest album cover as the hero image when possible
 		hero = upscaleAppleArtwork(latestAlbums[0].ArtworkURL100, 600)
 	}
 	if hero == "" && len(topTracks) > 0 {
+		// Fall back to a track artwork if we didn't get an album cover
 		hero = upscaleAppleArtwork(topTracks[0].ArtworkURL100, 600)
 	}
 
@@ -553,12 +576,14 @@ func handleAppleArtistDetail(w http.ResponseWriter, r *http.Request, idSegment s
 	}
 }
 
+// upscaleAppleArtwork rewrites `100x100bb.jpg` style artwork URLs to a larger size
 func upscaleAppleArtwork(u string, size int) string {
 	u = strings.TrimSpace(u)
 	if u == "" || size <= 0 {
 		return ""
 	}
 
+	// iTunes encodes the requested size in the last path segment
 	target := strconv.Itoa(size) + "x" + strconv.Itoa(size) + "bb.jpg"
 	parts := strings.Split(u, "/")
 	if len(parts) == 0 {
@@ -572,6 +597,7 @@ func upscaleAppleArtwork(u string, size int) string {
 	return u
 }
 
+// isLikelySpotifyID does a fast sanity check for the 22-char base62 Spotify IDs
 func isLikelySpotifyID(s string) bool {
 	if len(s) != 22 {
 		return false
@@ -591,6 +617,7 @@ func isLikelySpotifyID(s string) bool {
 	return true
 }
 
+// isNotFoundError checks common "not found" shapes across the external APIs used by the project
 func isNotFoundError(err error) bool {
 	msg := strings.ToLower(err.Error())
 	if strings.Contains(msg, "404") {

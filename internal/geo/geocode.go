@@ -12,8 +12,6 @@ import (
 	"time"
 )
 
-// Geocoder resolves place names into coordinates using the Open-Meteo geocoding API.
-// It keeps an in-memory cache to avoid repeated network calls.
 type Geocoder struct {
 	client *http.Client
 
@@ -33,6 +31,7 @@ type Result struct {
 	Display string
 }
 
+// NewGeocoder creates a Geocoder with a small in-memory cache and a short timeout
 func NewGeocoder() *Geocoder {
 	return &Geocoder{
 		client: &http.Client{Timeout: 6 * time.Second},
@@ -40,20 +39,22 @@ func NewGeocoder() *Geocoder {
 	}
 }
 
-// Geocode returns coordinates for (name, countryCode). countryCode should be ISO-3166-1 alpha-2 (e.g. "FR", "US").
-// If countryCode is provided, results outside that country are rejected (rather than picking a wrong match).
+// Geocode resolves a place name to coordinates and a display label
 func (g *Geocoder) Geocode(ctx context.Context, name string, countryCode string) (Result, bool, error) {
 	n := strings.TrimSpace(name)
 	if n == "" {
+		// Empty inputs are common in bad data, treat as "not found"
 		return Result{}, false, nil
 	}
 
 	cc := strings.ToUpper(strings.TrimSpace(countryCode))
+	// Cache key is normalized to avoid duplicates from case and spacing differences
 	key := strings.ToLower(n) + "|" + cc
 
 	g.mu.Lock()
 	if hit, ok := g.cache[key]; ok {
 		g.mu.Unlock()
+		// Cached results include negative hits to avoid repeated provider calls
 		return hit.result, hit.ok, nil
 	}
 	g.mu.Unlock()
@@ -61,16 +62,18 @@ func (g *Geocoder) Geocode(ctx context.Context, name string, countryCode string)
 	res, ok, err := g.tryGeocode(ctx, n, cc)
 
 	g.mu.Lock()
+	// Cache everything, even failures, since upstream APIs can be rate-limited
 	g.cache[key] = cachedResult{result: res, ok: ok, at: time.Now()}
 	g.mu.Unlock()
 
 	return res, ok, err
 }
 
+// tryGeocode applies project-specific normalization and provider fallbacks
 func (g *Geocoder) tryGeocode(ctx context.Context, name string, countryCode string) (Result, bool, error) {
-	// US states (and similar regions) are poorly handled by some city-focused geocoders.
-	// If we recognize a state (even with a small typo), try Nominatim first.
+
 	if countryCode == "US" {
+		// US state names are frequently misspelled in the dataset, normalize first
 		if norm, ok := normalizeUSStateName(name); ok {
 			if res, ok2, err := g.geocodeNominatim(ctx, norm, countryCode); err == nil && ok2 {
 				return res, true, nil
@@ -78,14 +81,13 @@ func (g *Geocoder) tryGeocode(ctx context.Context, name string, countryCode stri
 		}
 	}
 
-	// Try the raw name first.
+	// Try providers with the raw name first
 	if res, ok, err := g.tryProviders(ctx, name, countryCode); err == nil && ok {
 		return res, ok, nil
 	}
 
-	// If we have a country context, try light normalization to avoid silly mismatches
-	// (e.g. "Arizone" -> "Arizona") while still rejecting out-of-country results.
 	if countryCode == "US" {
+		// Retry with a normalized state name if the raw query failed
 		if norm, ok := normalizeUSStateName(name); ok && !strings.EqualFold(norm, name) {
 			if res, ok, err := g.tryProviders(ctx, norm, countryCode); err == nil && ok {
 				return res, ok, nil
@@ -96,25 +98,28 @@ func (g *Geocoder) tryGeocode(ctx context.Context, name string, countryCode stri
 	return Result{}, false, nil
 }
 
+// tryProviders calls multiple geocoding providers in a fixed order
 func (g *Geocoder) tryProviders(ctx context.Context, name string, countryCode string) (Result, bool, error) {
+	// Open-Meteo is fast and doesn't require any keys
 	res, ok, err := g.geocodeOpenMeteo(ctx, name, countryCode)
 	if err == nil && ok {
 		return res, true, nil
 	}
 
-	// Fallback: Nominatim can be more tolerant, but we still filter by countryCode when possible.
+	// Nominatim is a good fallback and often handles fuzzy place names better
 	res2, ok2, err2 := g.geocodeNominatim(ctx, name, countryCode)
 	if err2 == nil && ok2 {
 		return res2, true, nil
 	}
 
-	// Preserve a hard error if Open-Meteo failed (network / HTTP error).
+	// Prefer returning the first provider error we got to help debugging
 	if err != nil {
 		return Result{}, false, err
 	}
 	return Result{}, false, nil
 }
 
+// geocodeOpenMeteo queries Open-Meteo's geocoding API and picks the best candidate
 func (g *Geocoder) geocodeOpenMeteo(ctx context.Context, name string, countryCode string) (Result, bool, error) {
 	u, err := url.Parse("https://geocoding-api.open-meteo.com/v1/search")
 	if err != nil {
@@ -141,7 +146,7 @@ func (g *Geocoder) geocodeOpenMeteo(ctx context.Context, name string, countryCod
 	if err != nil {
 		return Result{}, false, err
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() { _ = resp.Body.Close() }() // close response body
 
 	if resp.StatusCode != http.StatusOK {
 		return Result{}, false, fmt.Errorf("open-meteo geocoding request failed: %s", resp.Status)
@@ -168,6 +173,7 @@ func (g *Geocoder) geocodeOpenMeteo(ctx context.Context, name string, countryCod
 	cc := strings.ToUpper(strings.TrimSpace(countryCode))
 	candidates := body.Results
 	if cc != "" {
+		// Extra guard: filter results by country code even if the API parameter was set
 		filtered := candidates[:0]
 		for _, r := range candidates {
 			if strings.ToUpper(strings.TrimSpace(r.CountryCode)) == cc {
@@ -180,6 +186,7 @@ func (g *Geocoder) geocodeOpenMeteo(ctx context.Context, name string, countryCod
 		}
 	}
 
+	// Pick the best candidate using a simple heuristic scoring
 	best := candidates[0]
 	bestScore := scoreCandidate(name, best.Name, best.Admin1)
 	for i := 1; i < len(candidates); i++ {
@@ -201,6 +208,7 @@ func (g *Geocoder) geocodeOpenMeteo(ctx context.Context, name string, countryCod
 	return Result{Lat: best.Latitude, Lng: best.Longitude, Display: display}, true, nil
 }
 
+// geocodeNominatim queries OpenStreetMap Nominatim and picks the best candidate
 func (g *Geocoder) geocodeNominatim(ctx context.Context, name string, countryCode string) (Result, bool, error) {
 	u, err := url.Parse("https://nominatim.openstreetmap.org/search")
 	if err != nil {
@@ -228,7 +236,7 @@ func (g *Geocoder) geocodeNominatim(ctx context.Context, name string, countryCod
 	if err != nil {
 		return Result{}, false, err
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() { _ = resp.Body.Close() }() // close response body
 
 	if resp.StatusCode != http.StatusOK {
 		return Result{}, false, fmt.Errorf("nominatim geocoding request failed: %s", resp.Status)
@@ -254,6 +262,7 @@ func (g *Geocoder) geocodeNominatim(ctx context.Context, name string, countryCod
 
 	candidates := body
 	if cc != "" {
+		// Nominatim sometimes returns cross-border matches, filter manually
 		filtered := candidates[:0]
 		for _, r := range candidates {
 			if strings.ToLower(strings.TrimSpace(r.Address.CountryCode)) == cc {
@@ -266,6 +275,7 @@ func (g *Geocoder) geocodeNominatim(ctx context.Context, name string, countryCod
 		}
 	}
 
+	// Pick the best match using the same scoring heuristic as Open-Meteo
 	best := candidates[0]
 	bestName := strings.TrimSpace(best.Name)
 	if bestName == "" {
@@ -296,13 +306,14 @@ func (g *Geocoder) geocodeNominatim(ctx context.Context, name string, countryCod
 
 	display := strings.TrimSpace(best.DisplayName)
 	if display == "" {
+		// Keep something readable for the popup even if DisplayName is missing
 		display = strings.TrimSpace(bestName)
 	}
 
 	return Result{Lat: lat, Lng: lng, Display: display}, true, nil
 }
 
-// HumanizeLocationKey converts Groupie location keys like "new_south_wales-australia" into "New South Wales, Australia".
+// HumanizeLocationKey converts Groupie Tracker location keys into a readable label
 func HumanizeLocationKey(key string) string {
 	place, country := splitLocationKey(key)
 	place = titleWords(place)
@@ -322,14 +333,14 @@ func HumanizeLocationKey(key string) string {
 	return place + ", " + country
 }
 
-// QueryFromLocationKey returns a (placeName, countryCode, displayName) triple suitable for geocoding and UI.
+// QueryFromLocationKey returns a queryable place, a country code hint, and a display label
 func QueryFromLocationKey(key string) (string, string, string) {
 	place, _ := splitLocationKey(key)
 	place = strings.TrimSpace(place)
 	return titleWords(place), CountryCodeFromKey(key), HumanizeLocationKey(key)
 }
 
-// CountryCodeFromKey tries to map the "-country" suffix to an ISO-3166-1 alpha-2 code for better disambiguation.
+// CountryCodeFromKey maps the country portion of a Groupie location key to an ISO-like code
 func CountryCodeFromKey(key string) string {
 	_, country := splitLocationKey(key)
 	c := strings.ToLower(strings.TrimSpace(country))
@@ -368,6 +379,7 @@ func CountryCodeFromKey(key string) string {
 	}
 }
 
+// splitLocationKey splits `place-country` keys into (place, country) and normalizes separators
 func splitLocationKey(key string) (string, string) {
 	k := strings.TrimSpace(key)
 	if k == "" {
@@ -379,6 +391,7 @@ func splitLocationKey(key string) (string, string) {
 		return strings.ReplaceAll(parts[0], "_", " "), ""
 	}
 
+	// Country is the last segment, the rest is the place
 	country := parts[len(parts)-1]
 	place := strings.Join(parts[:len(parts)-1], "-")
 	place = strings.ReplaceAll(place, "_", " ")
@@ -387,6 +400,7 @@ func splitLocationKey(key string) (string, string) {
 	return place, country
 }
 
+// titleWords uppercases the first letter of each whitespace-separated token
 func titleWords(s string) string {
 	s = strings.TrimSpace(s)
 	if s == "" {
@@ -403,6 +417,7 @@ func titleWords(s string) string {
 	return strings.Join(words, " ")
 }
 
+// scoreCandidate assigns a rough match score for a geocoding candidate
 func scoreCandidate(query, name, admin1 string) int {
 	q := strings.ToLower(strings.TrimSpace(query))
 	n := strings.ToLower(strings.TrimSpace(name))
@@ -418,8 +433,9 @@ func scoreCandidate(query, name, admin1 string) int {
 	if strings.Contains(n, q) && q != "" {
 		score += 20
 	}
-	// Encourage results that match even with small typos.
+
 	if q != "" && n != "" {
+		// Levenshtein helps when the data has small typos like "califronia"
 		d := levenshtein(q, n)
 		if d == 0 {
 			score += 30
@@ -435,6 +451,7 @@ func scoreCandidate(query, name, admin1 string) int {
 	return score
 }
 
+// levenshtein computes the edit distance between two strings
 func levenshtein(a, b string) int {
 	if a == b {
 		return 0
@@ -446,7 +463,6 @@ func levenshtein(a, b string) int {
 		return len(a)
 	}
 
-	// DP with two rows.
 	prev := make([]int, len(b)+1)
 	cur := make([]int, len(b)+1)
 
@@ -467,12 +483,14 @@ func levenshtein(a, b string) int {
 			sub := prev[j-1] + cost
 			cur[j] = min3(del, ins, sub)
 		}
+		// Reuse buffers to keep allocations low
 		prev, cur = cur, prev
 	}
 
 	return prev[len(b)]
 }
 
+// min3 returns the smallest of the three ints
 func min3(a, b, c int) int {
 	if a <= b && a <= c {
 		return a
@@ -483,6 +501,7 @@ func min3(a, b, c int) int {
 	return c
 }
 
+// normalizeUSStateName tries to map a noisy state string to a canonical state name
 func normalizeUSStateName(s string) (string, bool) {
 	q := strings.ToLower(strings.TrimSpace(s))
 	q = strings.ReplaceAll(q, ",", " ")
@@ -502,6 +521,7 @@ func normalizeUSStateName(s string) (string, bool) {
 		"virginia", "washington", "west virginia", "wisconsin", "wyoming",
 	}
 
+	// Find the closest state name by edit distance
 	best := ""
 	bestD := 999
 	for _, st := range states {
@@ -512,8 +532,8 @@ func normalizeUSStateName(s string) (string, bool) {
 		}
 	}
 
-	// Only accept exact match or small typos to avoid turning unrelated cities into states.
 	if best != "" && bestD <= 2 {
+		// Keep the threshold tight so random cities don't become states
 		return titleWords(best), true
 	}
 	return "", false

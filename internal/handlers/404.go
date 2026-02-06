@@ -11,7 +11,9 @@ type NotFoundPageData struct {
 	ActiveNav string
 }
 
+// NotFound renders the custom 404 page using the shared layout
 func NotFound(w http.ResponseWriter, r *http.Request) {
+	// Set status before writing any body content
 	w.WriteHeader(http.StatusNotFound)
 
 	tmpl, err := template.ParseFiles(
@@ -19,6 +21,7 @@ func NotFound(w http.ResponseWriter, r *http.Request) {
 		"web/templates/404.gohtml",
 	)
 	if err != nil {
+		// Fall back to a plain message if templates are broken
 		http.Error(w, "404 not found", http.StatusNotFound)
 		return
 	}

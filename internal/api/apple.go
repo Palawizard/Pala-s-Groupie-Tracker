@@ -93,6 +93,7 @@ var appleArtworkCache = struct {
 	m: make(map[int]appleArtworkCacheItem),
 }
 
+// appleDoJSON performs a GET request to iTunes and decodes the JSON response into out
 func appleDoJSON(u string, out any) error {
 	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
@@ -102,6 +103,7 @@ func appleDoJSON(u string, out any) error {
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "GroupieTrackerSchoolProject/1.0")
 
+	// Keep a short timeout so the UI doesn't hang on external APIs
 	client := &http.Client{Timeout: 8 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -116,9 +118,11 @@ func appleDoJSON(u string, out any) error {
 	return json.NewDecoder(resp.Body).Decode(out)
 }
 
+// SearchAppleArtists searches iTunes for music artists matching query
 func SearchAppleArtists(query string) ([]AppleArtist, error) {
 	term := strings.TrimSpace(query)
 	if term == "" {
+		// iTunes rejects empty terms, so use a cheap fallback
 		term = "a"
 	}
 
@@ -127,6 +131,7 @@ func SearchAppleArtists(query string) ([]AppleArtist, error) {
 	params.Set("media", "music")
 	params.Set("entity", "musicArtist")
 	params.Set("limit", "30")
+	// Using a fixed market keeps results stable for the project
 	params.Set("country", "FR")
 	params.Set("lang", "en_us")
 
@@ -139,9 +144,11 @@ func SearchAppleArtists(query string) ([]AppleArtist, error) {
 	for _, raw := range payload.Results {
 		var a AppleArtist
 		if err := json.Unmarshal(raw, &a); err != nil {
+			// iTunes mixes items sometimes, skip anything we can't decode
 			continue
 		}
 		if a.ArtistID <= 0 || strings.TrimSpace(a.ArtistName) == "" {
+			// Filter out incomplete hits to avoid broken links in the UI
 			continue
 		}
 		out = append(out, a)
@@ -150,6 +157,7 @@ func SearchAppleArtists(query string) ([]AppleArtist, error) {
 	return out, nil
 }
 
+// SearchAppleArtistsWithArtwork returns artists plus a "best effort" artwork URL for each artist
 func SearchAppleArtistsWithArtwork(query string, limit int, artworkSize int) ([]AppleArtistWithArtwork, error) {
 	if limit <= 0 || limit > 50 {
 		limit = 30
@@ -164,6 +172,7 @@ func SearchAppleArtistsWithArtwork(query string, limit int, artworkSize int) ([]
 	}
 
 	if len(artists) > limit {
+		// Keep the UI snappy and avoid making too many downstream calls
 		artists = artists[:limit]
 	}
 
@@ -172,14 +181,16 @@ func SearchAppleArtistsWithArtwork(query string, limit int, artworkSize int) ([]
 		out[i].Artist = artists[i]
 	}
 
+	// Limit concurrent lookups so we don't hammer iTunes and get throttled
 	sem := make(chan struct{}, 6)
 	var wg sync.WaitGroup
 
 	for i := range out {
 		wg.Add(1)
-		go func(idx int) {
+		go func(idx int) { // fetch artwork concurrently with a small cap
 			defer wg.Done()
 			sem <- struct{}{}
+			// Artwork is optional, ignore errors and keep the artist entry
 			u, _ := GetAppleArtistArtwork(out[idx].Artist.ArtistID, artworkSize)
 			out[idx].ArtworkURL = u
 			<-sem
@@ -190,6 +201,7 @@ func SearchAppleArtistsWithArtwork(query string, limit int, artworkSize int) ([]
 	return out, nil
 }
 
+// GetAppleArtist fetches basic artist info by iTunes artist ID
 func GetAppleArtist(id int) (*AppleArtist, error) {
 	if id <= 0 {
 		return nil, fmt.Errorf("invalid apple artist id")
@@ -221,6 +233,7 @@ func GetAppleArtist(id int) (*AppleArtist, error) {
 	return nil, fmt.Errorf("apple artist not found")
 }
 
+// GetAppleArtistAlbums returns the latest albums for an artist using iTunes lookup
 func GetAppleArtistAlbums(artistID int, limit int) ([]AppleAlbum, error) {
 	if artistID <= 0 {
 		return nil, fmt.Errorf("invalid apple artist id")
@@ -248,9 +261,11 @@ func GetAppleArtistAlbums(artistID int, limit int) ([]AppleAlbum, error) {
 			continue
 		}
 		if it.WrapperType != "collection" {
+			// Skip non-album items like the artist wrapper
 			continue
 		}
 		if strings.ToLower(strings.TrimSpace(it.CollectionType)) != "album" && it.CollectionType != "" {
+			// iTunes also returns "single" here sometimes, ignore those
 			continue
 		}
 		if it.CollectionID <= 0 || strings.TrimSpace(it.CollectionName) == "" {
@@ -270,13 +285,15 @@ func GetAppleArtistAlbums(artistID int, limit int) ([]AppleAlbum, error) {
 		})
 	}
 
-	sort.SliceStable(albums, func(i, j int) bool {
+	sort.SliceStable(albums, func(i, j int) bool { // newest first, then stable tie-breakers
 		di, okI := parseAppleDate(albums[i].ReleaseDate)
 		dj, okJ := parseAppleDate(albums[j].ReleaseDate)
 		if okI && okJ && !di.Equal(dj) {
+			// Prefer newest releases when we can parse both dates
 			return di.After(dj)
 		}
 		if okI != okJ {
+			// Prefer entries with a parseable date
 			return okI
 		}
 		ni := strings.ToLower(albums[i].CollectionName)
@@ -294,6 +311,7 @@ func GetAppleArtistAlbums(artistID int, limit int) ([]AppleAlbum, error) {
 	return albums, nil
 }
 
+// GetAppleArtistSongs returns recent songs for an artist using iTunes lookup
 func GetAppleArtistSongs(artistID int, limit int) ([]AppleTrack, error) {
 	if artistID <= 0 {
 		return nil, fmt.Errorf("invalid apple artist id")
@@ -321,6 +339,7 @@ func GetAppleArtistSongs(artistID int, limit int) ([]AppleTrack, error) {
 			continue
 		}
 		if it.WrapperType != "track" || it.Kind != "song" {
+			// Filter out non-song track types
 			continue
 		}
 		if it.TrackID <= 0 || strings.TrimSpace(it.TrackName) == "" {
@@ -340,10 +359,11 @@ func GetAppleArtistSongs(artistID int, limit int) ([]AppleTrack, error) {
 		})
 	}
 
-	sort.SliceStable(tracks, func(i, j int) bool {
+	sort.SliceStable(tracks, func(i, j int) bool { // newest first, then stable tie-breakers
 		di, okI := parseAppleDate(tracks[i].ReleaseDate)
 		dj, okJ := parseAppleDate(tracks[j].ReleaseDate)
 		if okI && okJ && !di.Equal(dj) {
+			// Keep the newest track first when possible
 			return di.After(dj)
 		}
 		if okI != okJ {
@@ -364,6 +384,7 @@ func GetAppleArtistSongs(artistID int, limit int) ([]AppleTrack, error) {
 	return tracks, nil
 }
 
+// GetAppleArtistArtwork tries to find a representative image by looking up the artist's latest album
 func GetAppleArtistArtwork(artistID int, size int) (string, error) {
 	if artistID <= 0 {
 		return "", fmt.Errorf("invalid apple artist id")
@@ -376,6 +397,7 @@ func GetAppleArtistArtwork(artistID int, size int) (string, error) {
 	appleArtworkCache.mu.RLock()
 	if it, ok := appleArtworkCache.m[artistID]; ok && it.URL != "" && now.Before(it.ExpiresAt) {
 		appleArtworkCache.mu.RUnlock()
+		// Cache hits are common on list pages, keep this path cheap
 		return it.URL, nil
 	}
 	appleArtworkCache.mu.RUnlock()
@@ -404,11 +426,13 @@ func GetAppleArtistArtwork(artistID int, size int) (string, error) {
 		if it.ArtworkURL100 == "" {
 			continue
 		}
+		// iTunes images are size-encoded in the last path segment
 		art = upscaleAppleArtwork(normalizeAppleArtworkURL(it.ArtworkURL100), size)
 		break
 	}
 
 	appleArtworkCache.mu.Lock()
+	// Cache empty strings too to avoid repeated lookups on missing artwork
 	appleArtworkCache.m[artistID] = appleArtworkCacheItem{
 		URL:       art,
 		ExpiresAt: now.Add(30 * time.Minute),
@@ -418,12 +442,14 @@ func GetAppleArtistArtwork(artistID int, size int) (string, error) {
 	return art, nil
 }
 
+// upscaleAppleArtwork rewrites iTunes artwork URLs to request a larger square image
 func upscaleAppleArtwork(u string, size int) string {
 	u = strings.TrimSpace(u)
 	if u == "" || size <= 0 {
 		return ""
 	}
 
+	// Typical tail is like `100x100bb.jpg`, rewrite it to `${size}x${size}bb.<ext>`
 	parts := strings.Split(u, "/")
 	if len(parts) == 0 {
 		return u
@@ -443,6 +469,7 @@ func upscaleAppleArtwork(u string, size int) string {
 	return u
 }
 
+// normalizeAppleArtworkURL upgrades http links to https and trims whitespace
 func normalizeAppleArtworkURL(u string) string {
 	u = strings.TrimSpace(u)
 	if u == "" {
@@ -454,6 +481,7 @@ func normalizeAppleArtworkURL(u string) string {
 	return u
 }
 
+// parseAppleDate tries common iTunes date formats
 func parseAppleDate(s string) (time.Time, bool) {
 	s = strings.TrimSpace(s)
 	if s == "" {

@@ -24,6 +24,7 @@ type HomePageData struct {
 	Featured  []HomeArtistCard
 }
 
+// HomeHandler renders the homepage with a featured artists carousel
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	source := getSource(r)
 
@@ -36,6 +37,7 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Featured cards are source-specific (Groupie vs Spotify vs Deezer vs Apple)
 	featured, err := buildHomeFeatured(source)
 	if err != nil {
 		http.Error(w, "failed to load home", http.StatusInternalServerError)
@@ -56,10 +58,13 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// buildHomeFeatured builds a small set of cards for the homepage marquee
 func buildHomeFeatured(source string) ([]HomeArtistCard, error) {
+	// Keep the marquee lightweight so the home page renders quickly
 	desired := 24
 
 	if source == "spotify" {
+		// Use a broad query so this section always has results
 		artists, err := api.SearchSpotifyArtists("a")
 		if err != nil {
 			return nil, err
@@ -75,6 +80,7 @@ func buildHomeFeatured(source string) ([]HomeArtistCard, error) {
 			a := artists[i]
 			imageURL := ""
 			if len(a.Images) > 0 {
+				// First image is typically the largest in Spotify's response
 				imageURL = a.Images[0].URL
 			}
 
@@ -111,6 +117,7 @@ func buildHomeFeatured(source string) ([]HomeArtistCard, error) {
 		out := make([]HomeArtistCard, 0, limit)
 		for i := 0; i < limit; i++ {
 			a := artists[i]
+			// Prefer higher-res covers when available
 			imageURL := a.PictureXL
 			if imageURL == "" {
 				imageURL = a.PictureBig
@@ -142,6 +149,7 @@ func buildHomeFeatured(source string) ([]HomeArtistCard, error) {
 	}
 
 	if source == "apple" {
+		// Apple doesn't expose artist images directly, so we reuse recent album artwork
 		artists, err := api.SearchAppleArtistsWithArtwork("a", desired, 300)
 		if err != nil {
 			return nil, err
@@ -172,6 +180,7 @@ func buildHomeFeatured(source string) ([]HomeArtistCard, error) {
 		return out, nil
 	}
 
+	// Default "groupie" source uses the original dataset
 	artists, err := api.FetchArtists()
 	if err != nil {
 		return nil, err
@@ -189,14 +198,16 @@ func buildHomeFeatured(source string) ([]HomeArtistCard, error) {
 			Name:     a.Name,
 			ImageURL: a.Image,
 			LinkURL:  "/artists/" + strconv.Itoa(a.ID) + "?source=groupie",
-			Meta:     fmt.Sprintf("Created %d • %d members", a.CreationDate, len(a.Members)),
-			Badge:    "Groupie",
+			// Keep metadata short so cards stay visually balanced
+			Meta:  fmt.Sprintf("Created %d • %d members", a.CreationDate, len(a.Members)),
+			Badge: "Groupie",
 		})
 	}
 
 	return out, nil
 }
 
+// formatIntCompact formats large numbers as 1.2k, 3.4m, etc
 func formatIntCompact(n int) string {
 	if n < 1000 {
 		return strconv.Itoa(n)
@@ -204,6 +215,7 @@ func formatIntCompact(n int) string {
 	if n < 1000000 {
 		v := float64(n) / 1000.0
 		s := strconv.FormatFloat(v, 'f', 1, 64)
+		// Avoid returning values like "1.0k"
 		s = trimTrailingZero(s)
 		return s + "k"
 	}
@@ -219,6 +231,7 @@ func formatIntCompact(n int) string {
 	return s + "b"
 }
 
+// trimTrailingZero removes a trailing ".0" from a decimal string
 func trimTrailingZero(s string) string {
 	if len(s) >= 2 && s[len(s)-2:] == ".0" {
 		return s[:len(s)-2]
