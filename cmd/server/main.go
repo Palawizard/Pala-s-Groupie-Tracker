@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/joho/godotenv"
 
@@ -37,9 +38,15 @@ func main() {
 		handlers.NotFound(w, r)
 	})
 
-	log.Println("listening on :8080")
+	port := os.Getenv("PORT")
+	if port == "" {
+		// Local dev default. On Scalingo/Heroku-like platforms, PORT is injected.
+		port = "8080"
+	}
+	addr := ":" + port
+	log.Println("listening on", addr)
 	// Start the HTTP server and fail hard if binding or serving fails
-	err = http.ListenAndServe(":8080", mux)
+	err = http.ListenAndServe(addr, mux)
 	if err != nil {
 		log.Fatal(err)
 	}
