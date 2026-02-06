@@ -2,7 +2,7 @@
 .DS_Store
 Thumbs.db
 
-# IDE / Editors
+# IDE / editors
 .idea/
 .vscode/
 *.iml
@@ -52,8 +52,6 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# NPM cache (optionnel)
+# Package manager caches
 .npm/
 
-# Ne pas ignorer go.mod / go.sum ni tes templates et fichiers statiques
-# (ne rien ajouter ici pour les exclure)
