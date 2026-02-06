@@ -1,0 +1,348 @@
+{{ define "content" }}
+    <section class="space-y-6">
+        <div class="flex items-center justify-between gap-3">
+            <div>
+                <h1 class="text-2xl font-semibold tracking-tight">
+                    Artists
+                </h1>
+                {{ if eq .Source "spotify" }}
+                    <p class="text-sm text-slate-300">
+                        Search Spotify artists using the same interface.
+                    </p>
+                {{ else if eq .Source "deezer" }}
+                    <p class="text-sm text-slate-300">
+                        Search Deezer artists using the same interface.
+                    </p>
+                {{ else if eq .Source "apple" }}
+                    <p class="text-sm text-slate-300">
+                        Search Apple (iTunes) artists using the same interface.
+                    </p>
+                {{ else }}
+                    <p class="text-sm text-slate-300">
+                        Search and filter artists from the Groupie Trackers API.
+                    </p>
+                {{ end }}
+            </div>
+        </div>
+
+        <form id="artist-filters" class="space-y-4 rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+            <input type="hidden" id="source" name="source" value="{{ .Source }}">
+
+            <div>
+                <label for="q" class="block text-xs font-medium text-slate-300 mb-1">
+                    Search
+                </label>
+                <input
+                        id="q"
+                        name="q"
+                        type="text"
+                        placeholder="By artist name"
+                        value="{{ .Query }}"
+                        class="w-full rounded-full border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                >
+            </div>
+
+            {{ if eq .Source "groupie" }}
+                <div class="grid gap-4 md:grid-cols-2">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="block text-xs font-medium text-slate-300">
+                                Creation year
+                            </span>
+                            <span class="text-xs text-slate-400 tabular-nums">
+                                <span id="year_min_out">{{ .YearMinValue }}</span>
+                                —
+                                <span id="year_max_out">{{ .YearMaxValue }}</span>
+                            </span>
+                        </div>
+
+                        <div class="dual-slider">
+                            <div class="dual-track"></div>
+                            <div id="year_fill" class="dual-fill"></div>
+
+                            <label for="year_min" class="sr-only">Creation year minimum</label>
+                            <input
+                                    id="year_min"
+                                    name="year_min"
+                                    type="range"
+                                    min="{{ .YearMinBound }}"
+                                    max="{{ .YearMaxBound }}"
+                                    step="1"
+                                    value="{{ .YearMinValue }}"
+                                    class="dual-range"
+                            >
+
+                            <label for="year_max" class="sr-only">Creation year maximum</label>
+                            <input
+                                    id="year_max"
+                                    name="year_max"
+                                    type="range"
+                                    min="{{ .YearMinBound }}"
+                                    max="{{ .YearMaxBound }}"
+                                    step="1"
+                                    value="{{ .YearMaxValue }}"
+                                    class="dual-range"
+                            >
+                        </div>
+
+                        <div class="flex items-center justify-between text-[11px] text-slate-500 tabular-nums">
+                            <span>{{ .YearMinBound }}</span>
+                            <span>{{ .YearMaxBound }}</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="block text-xs font-medium text-slate-300">
+                                Members count
+                            </span>
+                            <span class="text-xs text-slate-400 tabular-nums">
+                                <span id="members_min_out">{{ .MembersMinValue }}</span>
+                                —
+                                <span id="members_max_out">{{ .MembersMaxValue }}</span>
+                            </span>
+                        </div>
+
+                        <div class="dual-slider">
+                            <div class="dual-track"></div>
+                            <div id="members_fill" class="dual-fill"></div>
+
+                            <label for="members_min" class="sr-only">Members count minimum</label>
+                            <input
+                                    id="members_min"
+                                    name="members_min"
+                                    type="range"
+                                    min="{{ .MembersMinBound }}"
+                                    max="{{ .MembersMaxBound }}"
+                                    step="1"
+                                    value="{{ .MembersMinValue }}"
+                                    class="dual-range"
+                            >
+
+                            <label for="members_max" class="sr-only">Members count maximum</label>
+                            <input
+                                    id="members_max"
+                                    name="members_max"
+                                    type="range"
+                                    min="{{ .MembersMinBound }}"
+                                    max="{{ .MembersMaxBound }}"
+                                    step="1"
+                                    value="{{ .MembersMaxValue }}"
+                                    class="dual-range"
+                            >
+                        </div>
+
+                        <div class="flex items-center justify-between text-[11px] text-slate-500 tabular-nums">
+                            <span>{{ .MembersMinBound }}</span>
+                            <span>{{ .MembersMaxBound }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end">
+                    <a
+                            href="{{ .BasePath }}/artists"
+                            class="inline-flex items-center justify-center rounded-full border border-slate-700 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800/80 transition-colors"
+                    >
+                        Reset
+                    </a>
+                </div>
+            {{ else if eq .Source "spotify" }}
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div>
+                        <label for="sort" class="block text-xs font-medium text-slate-300 mb-1">
+                            Sort
+                        </label>
+                        <select
+                                id="sort"
+                                name="sort"
+                                class="w-52 rounded-full border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-xs text-slate-100 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        >
+                            <option value="relevance" {{ if or (eq .Sort "") (eq .Sort "relevance") }}selected{{ end }}>
+                                Relevance (Spotify)
+                            </option>
+                            <option value="followers_desc" {{ if eq .Sort "followers_desc" }}selected{{ end }}>
+                                Followers ↓
+                            </option>
+                            <option value="followers_asc" {{ if eq .Sort "followers_asc" }}selected{{ end }}>
+                                Followers ↑
+                            </option>
+                            <option value="listeners_desc" {{ if eq .Sort "listeners_desc" }}selected{{ end }}>
+                                LastFM monthly listeners ↓
+                            </option>
+                            <option value="listeners_asc" {{ if eq .Sort "listeners_asc" }}selected{{ end }}>
+                                LastFM monthly listeners ↑
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="flex justify-end md:ml-auto">
+                        <a
+                                href="{{ .BasePath }}/artists?source=spotify"
+                                class="inline-flex items-center justify-center rounded-full border border-slate-700 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800/80 transition-colors"
+                        >
+                            Reset
+                        </a>
+                    </div>
+                </div>
+            {{ else if eq .Source "deezer" }}
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div>
+                        <label for="sort" class="block text-xs font-medium text-slate-300 mb-1">
+                            Sort
+                        </label>
+                        <select
+                                id="sort"
+                                name="sort"
+                                class="w-52 rounded-full border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-xs text-slate-100 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        >
+                            <option value="relevance" {{ if or (eq .Sort "") (eq .Sort "relevance") }}selected{{ end }}>
+                                Relevance (Deezer)
+                            </option>
+                            <option value="fans_desc" {{ if eq .Sort "fans_desc" }}selected{{ end }}>
+                                Fans ↓
+                            </option>
+                            <option value="fans_asc" {{ if eq .Sort "fans_asc" }}selected{{ end }}>
+                                Fans ↑
+                            </option>
+                            <option value="albums_desc" {{ if eq .Sort "albums_desc" }}selected{{ end }}>
+                                Albums ↓
+                            </option>
+                            <option value="albums_asc" {{ if eq .Sort "albums_asc" }}selected{{ end }}>
+                                Albums ↑
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="flex justify-end md:ml-auto">
+                        <a
+                                href="{{ .BasePath }}/artists?source=deezer"
+                                class="inline-flex items-center justify-center rounded-full border border-slate-700 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800/80 transition-colors"
+                        >
+                            Reset
+                        </a>
+                    </div>
+                </div>
+            {{ else if eq .Source "apple" }}
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div>
+                        <label for="sort" class="block text-xs font-medium text-slate-300 mb-1">
+                            Sort
+                        </label>
+                        <select
+                                id="sort"
+                                name="sort"
+                                class="w-52 rounded-full border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-xs text-slate-100 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        >
+                            <option value="relevance" {{ if or (eq .Sort "") (eq .Sort "relevance") }}selected{{ end }}>
+                                Relevance (iTunes)
+                            </option>
+                            <option value="name_asc" {{ if eq .Sort "name_asc" }}selected{{ end }}>
+                                Name A→Z
+                            </option>
+                            <option value="name_desc" {{ if eq .Sort "name_desc" }}selected{{ end }}>
+                                Name Z→A
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="flex justify-end md:ml-auto">
+                        <a
+                                href="{{ .BasePath }}/artists?source=apple"
+                                class="inline-flex items-center justify-center rounded-full border border-slate-700 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800/80 transition-colors"
+                        >
+                            Reset
+                        </a>
+                    </div>
+                </div>
+            {{ end }}
+        </form>
+
+        <div id="artist-list" class="mt-2 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {{ template "artist_list" . }}
+        </div>
+
+        <script src="{{ .BasePath }}/static/js/artists.js"></script>
+    </section>
+{{ end }}
+
+{{ define "artist_list" }}
+    {{ if eq .Source "spotify" }}
+        {{ range .Spotify }}
+            <a href="{{ $.BasePath }}/artists/{{ .Artist.ID }}?source=spotify" class="block rounded-lg border border-slate-800 bg-slate-900/60 p-3 hover:border-emerald-500/70 hover:bg-slate-900 transition-colors">
+                <article class="flex flex-col gap-2">
+                    {{ if .Artist.Images }}
+                        <img src="{{ (index .Artist.Images 0).URL }}" alt="{{ .Artist.Name }}" class="w-full h-40 object-cover rounded-md">
+                    {{ end }}
+                    <h2 class="text-base font-semibold">{{ .Artist.Name }}</h2>
+                    {{ if gt .Followers 0 }}
+                        <p class="text-xs text-slate-400">
+                            Followers: {{ .Followers }}
+                        </p>
+                    {{ end }}
+                    {{ if .Artist.Genres }}
+                        <p class="text-xs text-slate-400">
+                            Genres: {{ index .Artist.Genres 0 }}
+                        </p>
+                    {{ end }}
+                </article>
+            </a>
+        {{ end }}
+    {{ else if eq .Source "deezer" }}
+        {{ range .Deezer }}
+            <a href="{{ $.BasePath }}/artists/{{ .Artist.ID }}?source=deezer" class="block rounded-lg border border-slate-800 bg-slate-900/60 p-3 hover:border-emerald-500/70 hover:bg-slate-900 transition-colors">
+                <article class="flex flex-col gap-2">
+                    {{ if .Artist.PictureBig }}
+                        <img src="{{ .Artist.PictureBig }}" alt="{{ .Artist.Name }}" class="w-full h-40 object-cover rounded-md">
+                    {{ else if .Artist.PictureMedium }}
+                        <img src="{{ .Artist.PictureMedium }}" alt="{{ .Artist.Name }}" class="w-full h-40 object-cover rounded-md">
+                    {{ end }}
+                    <h2 class="text-base font-semibold">{{ .Artist.Name }}</h2>
+                    {{ if gt .Fans 0 }}
+                        <p class="text-xs text-slate-400">
+                            Fans: {{ .Fans }}
+                        </p>
+                    {{ end }}
+                    {{ if gt .Albums 0 }}
+                        <p class="text-xs text-slate-400">
+                            Albums: {{ .Albums }}
+                        </p>
+                    {{ end }}
+                </article>
+            </a>
+        {{ end }}
+    {{ else if eq .Source "apple" }}
+        {{ range .Apple }}
+            <a href="{{ $.BasePath }}/artists/{{ .Artist.ArtistID }}?source=apple" class="block rounded-lg border border-slate-800 bg-slate-900/60 p-3 hover:border-emerald-500/70 hover:bg-slate-900 transition-colors">
+                <article class="flex flex-col gap-2">
+                    {{ if .ImageURL }}
+                        <img src="{{ .ImageURL }}" alt="{{ .Artist.ArtistName }}" class="w-full h-40 object-cover rounded-md">
+                    {{ else }}
+                        <div class="w-full h-40 rounded-md border border-slate-800 bg-slate-950/60"></div>
+                    {{ end }}
+                    <h2 class="text-base font-semibold">{{ .Artist.ArtistName }}</h2>
+                    {{ if .Genre }}
+                        <p class="text-xs text-slate-400">
+                            Genre: {{ .Genre }}
+                        </p>
+                    {{ end }}
+                </article>
+            </a>
+        {{ end }}
+    {{ else }}
+        {{ range .Artists }}
+            <a href="{{ $.BasePath }}/artists/{{ .ID }}" class="block rounded-lg border border-slate-800 bg-slate-900/60 p-3 hover:border-emerald-500/70 hover:bg-slate-900 transition-colors">
+                <article class="flex flex-col gap-2">
+                    <img src="{{ .Image }}" alt="{{ .Name }}" class="w-full h-40 object-cover rounded-md">
+                    <h2 class="text-base font-semibold">{{ .Name }}</h2>
+                    <p class="text-xs text-slate-400">
+                        Creation date: {{ .CreationDate }}
+                    </p>
+                    <p class="text-xs text-slate-400">
+                        Members: {{ len .Members }}
+                    </p>
+                </article>
+            </a>
+        {{ end }}
+    {{ end }}
+{{ end }}

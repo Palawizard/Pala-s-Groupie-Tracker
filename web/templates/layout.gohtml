@@ -1,0 +1,60 @@
+{{ define "layout" }}
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>{{ .Title }}</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="{{ .BasePath }}/static/css/style.css">
+        <link rel="stylesheet" href="{{ .BasePath }}/static/css/dual_slider.css">
+        <link rel="stylesheet" href="{{ .BasePath }}/static/css/home_marquee.css">
+    </head>
+    <body data-base-path="{{ .BasePath }}" class="min-h-screen bg-slate-950 text-slate-100 antialiased">
+    <header class="border-b border-slate-800">
+        <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
+            <a href="{{ .BasePath }}/" class="text-lg font-semibold tracking-[0.18em] uppercase">
+                Pala's Groupie Tracker
+            </a>
+            <div class="flex items-center gap-4">
+                <nav class="hidden sm:flex items-center gap-4 text-sm">
+                    <a href="{{ .BasePath }}/?source={{ .Source }}" class="{{ if eq .ActiveNav "home" }}text-slate-300{{ else }}text-slate-400{{ end }} hover:text-white transition-colors">Home</a>
+                    <a href="{{ .BasePath }}/artists?source={{ .Source }}" class="{{ if eq .ActiveNav "artists" }}text-slate-300{{ else }}text-slate-400{{ end }} hover:text-white transition-colors">Artists</a>
+                </nav>
+                <div id="source-toggle" class="flex text-[11px] rounded-full border border-slate-700 overflow-hidden">
+                    <button
+                            type="button"
+                            data-target="groupie"
+                            class="px-3 py-1 {{ if and (ne .Source "spotify") (ne .Source "deezer") (ne .Source "apple") }}bg-slate-700 text-white{{ else }}text-slate-300{{ end }}">
+                        Groupie
+                    </button>
+                    <button
+                            type="button"
+                            data-target="spotify"
+                            class="px-3 py-1 {{ if eq .Source "spotify" }}bg-emerald-500 text-slate-950{{ else }}text-slate-300{{ end }}">
+                        Spotify
+                    </button>
+                    <button
+                            type="button"
+                            data-target="deezer"
+                            class="px-3 py-1 {{ if eq .Source "deezer" }}bg-sky-500 text-slate-950{{ else }}text-slate-300{{ end }}">
+                        Deezer
+                    </button>
+                    <button
+                            type="button"
+                            data-target="apple"
+                            class="px-3 py-1 {{ if eq .Source "apple" }}bg-slate-200 text-slate-950{{ else }}text-slate-300{{ end }}">
+                        Apple
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-4 py-8">
+        {{ template "content" . }}
+    </main>
+
+    <script src="{{ .BasePath }}/static/js/source_toggle.js"></script>
+    </body>
+    </html>
+{{ end }}

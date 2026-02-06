@@ -1,0 +1,523 @@
+{{ define "content" }}
+    <section class="space-y-6">
+        <a href="{{ .BasePath }}/artists?source={{ .Source }}" class="inline-flex items-center text-xs text-slate-400 hover:text-white transition-colors">
+            ← Back to artists
+        </a>
+
+        <div class="flex flex-col md:flex-row gap-6">
+            <div class="md:w-1/3">
+                {{ if eq .Source "spotify" }}
+                    {{ if and .SpotifyArtist .SpotifyArtist.Images }}
+                        <img src="{{ (index .SpotifyArtist.Images 0).URL }}" alt="{{ .SpotifyArtist.Name }}" class="w-full rounded-xl border border-slate-800">
+                    {{ end }}
+                {{ else if eq .Source "deezer" }}
+                    {{ if .DeezerArtist }}
+                        {{ if .DeezerArtist.PictureXL }}
+                            <img src="{{ .DeezerArtist.PictureXL }}" alt="{{ .DeezerArtist.Name }}" class="w-full rounded-xl border border-slate-800">
+                        {{ else if .DeezerArtist.PictureBig }}
+                            <img src="{{ .DeezerArtist.PictureBig }}" alt="{{ .DeezerArtist.Name }}" class="w-full rounded-xl border border-slate-800">
+                        {{ else if .DeezerArtist.PictureMedium }}
+                            <img src="{{ .DeezerArtist.PictureMedium }}" alt="{{ .DeezerArtist.Name }}" class="w-full rounded-xl border border-slate-800">
+                        {{ end }}
+                    {{ end }}
+                {{ else if eq .Source "apple" }}
+                    {{ if .AppleHeroImage }}
+                        <img src="{{ .AppleHeroImage }}" alt="{{ .AppleArtist.ArtistName }}" class="w-full rounded-xl border border-slate-800">
+                    {{ end }}
+                {{ else }}
+                    <img src="{{ .Artist.Image }}" alt="{{ .Artist.Name }}" class="w-full rounded-xl border border-slate-800">
+                {{ end }}
+            </div>
+
+            <div class="md:w-2/3 space-y-3">
+                <h1 class="text-3xl font-semibold tracking-tight">
+                    {{ if eq .Source "spotify" }}{{ .SpotifyArtist.Name }}{{ else if eq .Source "deezer" }}{{ .DeezerArtist.Name }}{{ else if eq .Source "apple" }}{{ .AppleArtist.ArtistName }}{{ else }}{{ .Artist.Name }}{{ end }}
+                </h1>
+
+                {{ if eq .Source "spotify" }}
+                    {{ if .SpotifyGenre }}
+                        <p class="text-sm text-slate-300">
+                            Genres: {{ .SpotifyGenre }}
+                        </p>
+                    {{ end }}
+                    {{ if gt .SpotifyFollowers 0 }}
+                        <p class="text-sm text-slate-300">
+                            Followers: {{ .SpotifyFollowers }}
+                        </p>
+                    {{ end }}
+                    {{ if gt .SpotifyMonthlyListeners 0 }}
+                        <p class="text-sm text-slate-300">
+                            LastFM monthly listeners: {{ .SpotifyMonthlyListeners }}
+                        </p>
+                    {{ end }}
+                    {{ if .SpotifyArtist.ExternalURLs.Spotify }}
+                        <p class="text-sm text-slate-300">
+                            <a href="{{ .SpotifyArtist.ExternalURLs.Spotify }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-emerald-400 hover:bg-slate-800/90 transition-colors">
+                                Open in Spotify
+                            </a>
+                        </p>
+                    {{ end }}
+                {{ else if eq .Source "deezer" }}
+                    {{ if gt .DeezerFans 0 }}
+                        <p class="text-sm text-slate-300">
+                            Fans: {{ .DeezerFans }}
+                        </p>
+                    {{ end }}
+                    {{ if gt .DeezerAlbumsCount 0 }}
+                        <p class="text-sm text-slate-300">
+                            Albums: {{ .DeezerAlbumsCount }}
+                        </p>
+                    {{ end }}
+                    <p class="text-sm text-slate-300">
+                        Radio available: {{ if .DeezerHasRadio }}Yes{{ else }}No{{ end }}
+                    </p>
+                    {{ if gt .DeezerMonthlyListeners 0 }}
+                        <p class="text-sm text-slate-300">
+                            LastFM monthly listeners: {{ .DeezerMonthlyListeners }}
+                        </p>
+                    {{ end }}
+                    {{ if and .DeezerArtist .DeezerArtist.Link }}
+                        <p class="text-sm text-slate-300">
+                            <a href="{{ .DeezerArtist.Link }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-emerald-400 hover:bg-slate-800/90 transition-colors">
+                                Open in Deezer
+                            </a>
+                        </p>
+                    {{ end }}
+                {{ else if eq .Source "apple" }}
+                    {{ if .AppleGenre }}
+                        <p class="text-sm text-slate-300">
+                            Genre: {{ .AppleGenre }}
+                        </p>
+                    {{ end }}
+                    {{ if gt .AppleMonthlyListeners 0 }}
+                        <p class="text-sm text-slate-300">
+                            LastFM monthly listeners: {{ .AppleMonthlyListeners }}
+                        </p>
+                    {{ end }}
+                    {{ if and .AppleArtist .AppleArtist.ArtistLinkURL }}
+                        <p class="text-sm text-slate-300">
+                            <a href="{{ .AppleArtist.ArtistLinkURL }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-emerald-400 hover:bg-slate-800/90 transition-colors">
+                                Open in Apple Music
+                            </a>
+                        </p>
+                    {{ end }}
+                {{ else }}
+                    <p class="text-sm text-slate-300">
+                        Creation date: {{ .Artist.CreationDate }}
+                    </p>
+                    <p class="text-sm text-slate-300">
+                        First album: {{ .Artist.FirstAlbum }}
+                    </p>
+                    <div>
+                        <h2 class="text-sm font-semibold text-slate-200 mb-1">
+                            Members
+                        </h2>
+                        <ul class="text-sm text-slate-300 list-disc list-inside space-y-1">
+                            {{ range .Artist.Members }}
+                                <li>{{ . }}</li>
+                            {{ end }}
+                        </ul>
+                    </div>
+                {{ end }}
+
+                {{ if .HasWiki }}
+                    <div class="space-y-2 rounded-xl border border-slate-800 bg-slate-900/60 p-4 mt-2">
+                        <div class="flex items-center justify-between gap-2">
+                            <h2 class="text-sm font-semibold text-slate-200">
+                                Wikipedia
+                            </h2>
+                            <a href="{{ .WikiURL }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-slate-200 hover:bg-slate-800/90 transition-colors">
+                                Wikipedia
+                            </a>
+                        </div>
+                        <p class="text-sm text-slate-300">
+                            {{ .WikiSummary }}
+                        </p>
+                    </div>
+                {{ end }}
+            </div>
+        </div>
+
+        <script src="{{ .BasePath }}/static/js/embed_modal.js"></script>
+
+        {{ if eq .Source "spotify" }}
+            {{ if .SpotifyTopTracks }}
+            <div class="space-y-3">
+                <h2 class="text-lg font-semibold">
+                    Popular tracks
+                </h2>
+                <div class="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/60">
+                    <table class="min-w-full text-sm text-slate-200">
+                        <thead class="bg-slate-900/80 text-xs uppercase text-slate-400">
+                        <tr>
+                            <th class="px-4 py-2 text-left">Title</th>
+                            <th class="px-4 py-2 text-left hidden sm:table-cell">Album</th>
+                            <th class="px-4 py-2 text-right hidden sm:table-cell">Popularity</th>
+                            <th class="px-4 py-2 text-right">Play</th>
+                        </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800">
+                        {{ range $i, $track := .SpotifyTopTracks }}
+                            <tr class="hover:bg-slate-800/70 transition-colors">
+                                <td class="px-4 py-2 align-middle">
+                                    <div class="flex items-center gap-3">
+                                        {{ if $track.Album.Images }}
+                                            <img src="{{ (index $track.Album.Images 0).URL }}" alt="{{ $track.Name }}" class="h-10 w-10 rounded object-cover hidden sm:block">
+                                        {{ end }}
+                                        <div>
+                                            <div class="text-sm font-medium">
+                                                {{ $track.Name }}
+                                            </div>
+                                            <div class="text-xs text-slate-400 line-clamp-1">
+                                                {{ $track.Album.Name }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-2 text-xs text-slate-400 align-middle hidden sm:table-cell">
+                                    {{ $track.Album.Name }}
+                                </td>
+                                <td class="px-4 py-2 text-xs text-slate-400 text-right align-middle hidden sm:table-cell">
+                                    {{ $track.Popularity }}
+                                </td>
+                                <td class="px-4 py-2 text-right align-middle">
+                                    {{ if $track.ExternalURLs.Spotify }}
+                                        <button
+                                                type="button"
+                                                data-spotify-open
+                                                data-spotify-url="{{ $track.ExternalURLs.Spotify }}"
+                                                class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-emerald-400 hover:bg-slate-800/90 transition-colors"
+                                        >
+                                            Open
+                                        </button>
+                                    {{ else if $track.PreviewURL }}
+                                        <audio controls class="h-8 w-full max-w-[140px] ml-auto">
+                                            <source src="{{ $track.PreviewURL }}" type="audio/mpeg">
+                                        </audio>
+                                    {{ end }}
+                                </td>
+                            </tr>
+                        {{ end }}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {{ end }}
+
+            {{ if .SpotifyLatestAlbums }}
+            <div class="space-y-3">
+                <h2 class="text-lg font-semibold">
+                    Latest releases
+                </h2>
+                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {{ range .SpotifyLatestAlbums }}
+                        <button
+                                type="button"
+                                data-spotify-open
+                                data-spotify-url="{{ .ExternalURLs.Spotify }}"
+                                class="group block text-left rounded-xl border border-slate-800 bg-slate-900/60 hover:border-emerald-500/70 hover:bg-slate-900 transition-colors"
+                        >
+                            <div class="flex flex-col gap-2 p-3">
+                                {{ if .Images }}
+                                    <img src="{{ (index .Images 0).URL }}" alt="{{ .Name }}" class="w-full h-40 object-cover rounded-md">
+                                {{ end }}
+                                <div class="space-y-1">
+                                    <p class="text-sm font-semibold line-clamp-2 group-hover:text-emerald-300 transition-colors">
+                                        {{ .Name }}
+                                    </p>
+                                    <p class="text-xs text-slate-400">
+                                        {{ .AlbumType }} • {{ .ReleaseDate }}
+                                    </p>
+                                </div>
+                            </div>
+                        </button>
+                    {{ end }}
+                </div>
+            </div>
+            {{ end }}
+
+            <div id="spotify_modal_root" class="fixed inset-0 z-50 hidden items-center justify-center" aria-hidden="true">
+                <div id="spotify_modal_backdrop" class="absolute inset-0 bg-black/70"></div>
+
+                <div class="relative w-[min(92vw,540px)] rounded-xl border border-slate-800 bg-slate-950 shadow-2xl">
+                    <div class="p-4">
+                        <iframe
+                                id="spotify_modal_iframe"
+                                title="Spotify player"
+                                src=""
+                                width="100%"
+                                height="152"
+                                style="border:none;border-radius:12px"
+                                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                                loading="lazy"
+                        ></iframe>
+
+                        <div class="mt-4 flex items-center justify-end gap-2">
+                            <a id="spotify_modal_open_spotify" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-emerald-400 hover:bg-slate-900 transition-colors">
+                                Open in Spotify
+                            </a>
+                            <button id="spotify_modal_close_btn" type="button" class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-slate-200 hover:bg-slate-900 transition-colors">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <script src="{{ .BasePath }}/static/js/spotify_modal.js"></script>
+        {{ end }}
+
+        {{ if eq .Source "deezer" }}
+            {{ if .DeezerTopTracks }}
+            <div class="space-y-3">
+                <h2 class="text-lg font-semibold">
+                    Top tracks
+                </h2>
+                <div class="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/60">
+                    <table class="min-w-full text-sm text-slate-200">
+                        <thead class="bg-slate-900/80 text-xs uppercase text-slate-400">
+                        <tr>
+                            <th class="px-4 py-2 text-left">Title</th>
+                            <th class="px-4 py-2 text-left hidden sm:table-cell">Album</th>
+                            <th class="px-4 py-2 text-right hidden sm:table-cell">Rank</th>
+                            <th class="px-4 py-2 text-right">Play</th>
+                        </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800">
+                        {{ range $i, $track := .DeezerTopTracks }}
+                            <tr class="hover:bg-slate-800/70 transition-colors">
+                                <td class="px-4 py-2 align-middle">
+                                    <div class="flex items-center gap-3">
+                                        {{ if $track.Album.CoverMedium }}
+                                            <img src="{{ $track.Album.CoverMedium }}" alt="{{ $track.Title }}" class="h-10 w-10 rounded object-cover hidden sm:block">
+                                        {{ end }}
+                                        <div>
+                                            <div class="text-sm font-medium">
+                                                {{ $track.Title }}
+                                            </div>
+                                            <div class="text-xs text-slate-400 line-clamp-1">
+                                                {{ $track.Album.Title }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-2 text-xs text-slate-400 align-middle hidden sm:table-cell">
+                                    {{ $track.Album.Title }}
+                                </td>
+                                <td class="px-4 py-2 text-xs text-slate-400 text-right align-middle hidden sm:table-cell">
+                                    {{ $track.Rank }}
+                                </td>
+                                <td class="px-4 py-2 text-right align-middle">
+                                    {{ if $track.ID }}
+                                        <button
+                                                type="button"
+                                                data-deezer-open
+                                                data-deezer-type="track"
+                                                data-deezer-id="{{ $track.ID }}"
+                                                data-deezer-url="{{ $track.Link }}"
+                                                class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-emerald-400 hover:bg-slate-800/90 transition-colors"
+                                        >
+                                            Open
+                                        </button>
+                                    {{ else if $track.Preview }}
+                                        <audio controls class="h-8 w-full max-w-[140px] ml-auto">
+                                            <source src="{{ $track.Preview }}" type="audio/mpeg">
+                                        </audio>
+                                    {{ end }}
+                                </td>
+                            </tr>
+                        {{ end }}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {{ end }}
+
+            {{ if .DeezerLatestAlbums }}
+            <div class="space-y-3">
+                <h2 class="text-lg font-semibold">
+                    Latest releases
+                </h2>
+                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {{ range .DeezerLatestAlbums }}
+                        <button
+                                type="button"
+                                data-deezer-open
+                                data-deezer-type="album"
+                                data-deezer-id="{{ .ID }}"
+                                data-deezer-url="{{ .Link }}"
+                                class="group block text-left rounded-xl border border-slate-800 bg-slate-900/60 hover:border-emerald-500/70 hover:bg-slate-900 transition-colors"
+                        >
+                            <div class="flex flex-col gap-2 p-3">
+                                {{ if .CoverXL }}
+                                    <img src="{{ .CoverXL }}" alt="{{ .Title }}" class="w-full h-40 object-cover rounded-md">
+                                {{ else if .CoverBig }}
+                                    <img src="{{ .CoverBig }}" alt="{{ .Title }}" class="w-full h-40 object-cover rounded-md">
+                                {{ else if .CoverMedium }}
+                                    <img src="{{ .CoverMedium }}" alt="{{ .Title }}" class="w-full h-40 object-cover rounded-md">
+                                {{ end }}
+                                <div class="space-y-1">
+                                    <p class="text-sm font-semibold line-clamp-2 group-hover:text-emerald-300 transition-colors">
+                                        {{ .Title }}
+                                    </p>
+                                    <p class="text-xs text-slate-400">
+                                        {{ if .RecordType }}{{ .RecordType }} • {{ end }}{{ .ReleaseDate }}{{ if gt .NbTracks 0 }} • {{ .NbTracks }} tracks{{ end }}{{ if gt .Fans 0 }} • {{ .Fans }} fans{{ end }}
+                                    </p>
+                                </div>
+                            </div>
+                        </button>
+                    {{ end }}
+                </div>
+            </div>
+            {{ end }}
+
+            <div id="deezer_modal_root" class="fixed inset-0 z-50 hidden items-center justify-center" aria-hidden="true">
+                <div id="deezer_modal_backdrop" class="absolute inset-0 bg-black/70"></div>
+
+                <div class="relative w-[min(92vw,540px)] rounded-xl border border-slate-800 bg-slate-950 shadow-2xl">
+                    <div class="p-4">
+                        <iframe
+                                id="deezer_modal_iframe"
+                                title="Deezer player"
+                                src=""
+                                width="100%"
+                                height="152"
+                                style="border:none;border-radius:12px"
+                                allow="encrypted-media; clipboard-write"
+                                loading="lazy"
+                        ></iframe>
+
+                        <div class="mt-4 flex items-center justify-end gap-2">
+                            <a id="deezer_modal_open_deezer" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-emerald-400 hover:bg-slate-900 transition-colors">
+                                Open in Deezer
+                            </a>
+                            <button id="deezer_modal_close_btn" type="button" class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-slate-200 hover:bg-slate-900 transition-colors">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <script src="{{ .BasePath }}/static/js/deezer_modal.js"></script>
+        {{ end }}
+
+        {{ if eq .Source "apple" }}
+            {{ if .AppleTopTracks }}
+                <div class="space-y-3">
+                    <h2 class="text-lg font-semibold">
+                        Top tracks
+                    </h2>
+                    <div class="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/60">
+                        <table class="min-w-full text-sm text-slate-200">
+                            <thead class="bg-slate-900/80 text-xs uppercase text-slate-400">
+                            <tr>
+                                <th class="px-4 py-2 text-left">Title</th>
+                                <th class="px-4 py-2 text-left hidden sm:table-cell">Album</th>
+                                <th class="px-4 py-2 text-right">Play</th>
+                            </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800">
+                            {{ range .AppleTopTracks }}
+                                <tr class="hover:bg-slate-800/70 transition-colors">
+                                    <td class="px-4 py-2 align-middle">
+                                        <div class="flex items-center gap-3">
+                                            {{ if .ArtworkURL100 }}
+                                                <img src="{{ .ArtworkURL100 }}" alt="{{ .TrackName }}" class="h-10 w-10 rounded object-cover hidden sm:block">
+                                            {{ end }}
+                                            <div>
+                                                <div class="text-sm font-medium">
+                                                    {{ .TrackName }}
+                                                </div>
+                                                <div class="text-xs text-slate-400 line-clamp-1">
+                                                    {{ .CollectionName }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-2 text-xs text-slate-400 align-middle hidden sm:table-cell">
+                                        {{ .CollectionName }}
+                                    </td>
+                                    <td class="px-4 py-2 text-right align-middle">
+                                        {{ if .PreviewURL }}
+                                            <audio controls class="h-8 w-full max-w-[160px] ml-auto">
+                                                <source src="{{ .PreviewURL }}" type="audio/mpeg">
+                                            </audio>
+                                        {{ else if .TrackViewURL }}
+                                            <a href="{{ .TrackViewURL }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-emerald-400 hover:bg-slate-800/90 transition-colors">
+                                                Open
+                                            </a>
+                                        {{ end }}
+                                    </td>
+                                </tr>
+                            {{ end }}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {{ end }}
+
+            {{ if .AppleLatestAlbums }}
+                <div class="space-y-3">
+                    <h2 class="text-lg font-semibold">
+                        Latest albums
+                    </h2>
+                    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                        {{ range .AppleLatestAlbums }}
+                            <a
+                                    href="{{ .CollectionViewURL }}"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="group block text-left rounded-xl border border-slate-800 bg-slate-900/60 hover:border-emerald-500/70 hover:bg-slate-900 transition-colors"
+                            >
+                                <div class="flex flex-col gap-2 p-3">
+                                    {{ if .ArtworkURL100 }}
+                                        <img src="{{ .ArtworkURL100 }}" alt="{{ .CollectionName }}" class="w-full h-40 object-cover rounded-md">
+                                    {{ end }}
+                                    <div class="space-y-1">
+                                        <p class="text-sm font-semibold line-clamp-2 group-hover:text-emerald-300 transition-colors">
+                                            {{ .CollectionName }}
+                                        </p>
+                                        <p class="text-xs text-slate-400">
+                                            {{ if gt (len .ReleaseDate) 10 }}{{ printf "%.10s" .ReleaseDate }}{{ else }}{{ .ReleaseDate }}{{ end }}{{ if gt .TrackCount 0 }} • {{ .TrackCount }} tracks{{ end }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </a>
+                        {{ end }}
+                    </div>
+                </div>
+            {{ end }}
+        {{ end }}
+
+        {{ if eq .Source "groupie" }}
+            <div class="space-y-3">
+                <h2 class="text-lg font-semibold">
+                    Concert map
+                </h2>
+                <p class="text-xs text-slate-400">
+                    Markers are placed on a real world map. Click a marker to see concert dates for that location.
+                </p>
+
+                <link
+                        rel="stylesheet"
+                        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+                        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+                        crossorigin=""
+                />
+
+                <div id="map" class="w-full h-80 md:h-96 rounded-xl border border-slate-800 overflow-hidden"></div>
+
+                <script id="artist_locations_json" type="application/json">{{ .LocationsJSON }}</script>
+
+                <script
+                        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+                        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+                        crossorigin="">
+                </script>
+
+                <script src="{{ .BasePath }}/static/js/artist_map.js"></script>
+            </div>
+        {{ end }}
+    </section>
+{{ end }}
