@@ -4,6 +4,9 @@
     const list = document.getElementById("artist-list");
     if (!form || !list) return;
 
+    const loadingEl = document.getElementById("artist_loading");
+    const resultsEl = document.getElementById("artist_results");
+
     function getBasePath() {
         const bp = document.body ? (document.body.getAttribute("data-base-path") || "") : "";
         return String(bp || "").replace(/\/+$/, "");
@@ -24,6 +27,23 @@
 
     const yearFill = document.getElementById("year_fill");
     const membersFill = document.getElementById("members_fill");
+
+    function setLoading(isLoading) {
+        if (!loadingEl) return;
+        if (isLoading) {
+            loadingEl.classList.remove("hidden");
+            list.setAttribute("aria-busy", "true");
+        } else {
+            loadingEl.classList.add("hidden");
+            list.removeAttribute("aria-busy");
+        }
+    }
+
+    function updateResultCount() {
+        if (!resultsEl) return;
+        const cards = list.querySelectorAll("a").length;
+        resultsEl.textContent = String(cards) + " results";
+    }
 
     // getCurrentSource reads the current "source" mode from the URL or hidden input
     function getCurrentSource() {
@@ -149,6 +169,7 @@
         const basePath = getBasePath();
         const url = (basePath || "") + "/artists/ajax?" + query;
 
+        setLoading(true);
         fetch(url, {
             headers: {
                 "Accept": "text/html"
@@ -162,9 +183,13 @@
             })
             .then(function (html) { // second stage injects the HTML fragment
                 list.innerHTML = html;
+                updateResultCount();
+                setLoading(false);
             })
             .catch(function () { // errors are expected when APIs are down
                 list.innerHTML = '<p class="text-sm text-slate-400 col-span-full">Failed to load filtered artists.</p>';
+                updateResultCount();
+                setLoading(false);
             });
     }
 
@@ -196,4 +221,175 @@
 
     // Initialize slider UI on first load
     normalizeRanges();
+    updateResultCount();
+
+    // Search suggestions (Groupie mode only)
+    const searchInput = document.getElementById("q");
+    const locationInput = document.getElementById("location");
+    const suggestWrap = document.getElementById("search_suggest");
+    const suggestList = document.getElementById("search_suggest_list");
+
+    if (!searchInput || !suggestWrap || !suggestList) return;
+
+    let suggestTimeoutId;
+    let activeIndex = -1;
+    let lastItems = [];
+
+    function hideSuggestions() {
+        suggestWrap.classList.add("hidden");
+        suggestList.innerHTML = "";
+        activeIndex = -1;
+        lastItems = [];
+    }
+
+    function setActive(index) {
+        const items = suggestList.querySelectorAll("[data-suggest-item]");
+        items.forEach(function (el, i) {
+            if (i === index) {
+                el.classList.add("bg-slate-900/70");
+                el.setAttribute("aria-selected", "true");
+            } else {
+                el.classList.remove("bg-slate-900/70");
+                el.removeAttribute("aria-selected");
+            }
+        });
+        activeIndex = index;
+    }
+
+    function applySuggestion(s) {
+        if (!s) return;
+        const target = String(s.target || "q");
+        const value = String(s.value || "");
+
+        if (target === "location" && locationInput) {
+            locationInput.value = value;
+            locationInput.focus();
+        } else {
+            searchInput.value = value;
+            searchInput.focus();
+        }
+
+        hideSuggestions();
+        scheduleFetch();
+    }
+
+    function renderSuggestions(items) {
+        suggestList.innerHTML = "";
+        lastItems = Array.isArray(items) ? items : [];
+        activeIndex = -1;
+
+        if (!Array.isArray(items) || items.length === 0) {
+            hideSuggestions();
+            return;
+        }
+
+        for (const s of items) {
+            const li = document.createElement("li");
+            li.setAttribute("data-suggest-item", "1");
+            li.className = "flex items-center justify-between gap-2 px-3 py-2 text-sm text-slate-200 hover:bg-slate-900/70 cursor-pointer";
+
+            const left = document.createElement("div");
+            left.className = "min-w-0";
+
+            const label = document.createElement("div");
+            label.className = "truncate";
+            label.textContent = String(s.label || s.value || "");
+
+            left.appendChild(label);
+
+            const badge = document.createElement("span");
+            badge.className = "shrink-0 rounded-full border border-slate-700 px-2 py-0.5 text-[11px] text-slate-300";
+            badge.textContent = String(s.type || "suggestion");
+
+            li.appendChild(left);
+            li.appendChild(badge);
+
+            li.addEventListener("mousedown", function (ev) { // mousedown prevents blur before click
+                ev.preventDefault();
+                applySuggestion(s);
+            });
+
+            suggestList.appendChild(li);
+        }
+
+        suggestWrap.classList.remove("hidden");
+    }
+
+    function fetchSuggestions() {
+        if (getCurrentSource() !== "groupie") {
+            hideSuggestions();
+            return;
+        }
+
+        const q = String(searchInput.value || "").trim();
+        if (q.length < 2) {
+            hideSuggestions();
+            return;
+        }
+
+        const basePath = getBasePath();
+        const params = new URLSearchParams();
+        params.set("source", "groupie");
+        params.set("q", q);
+
+        const url = (basePath || "") + "/artists/suggest?" + params.toString();
+        fetch(url, {
+            headers: {
+                "Accept": "application/json"
+            }
+        })
+            .then(function (res) {
+                if (!res.ok) throw new Error("suggest failed " + res.status);
+                return res.json();
+            })
+            .then(function (json) {
+                renderSuggestions(json);
+            })
+            .catch(function () {
+                hideSuggestions();
+            });
+    }
+
+    function scheduleSuggest() {
+        if (suggestTimeoutId) window.clearTimeout(suggestTimeoutId);
+        suggestTimeoutId = window.setTimeout(fetchSuggestions, 120);
+    }
+
+    searchInput.addEventListener("input", scheduleSuggest);
+
+    searchInput.addEventListener("keydown", function (ev) {
+        if (suggestWrap.classList.contains("hidden")) return;
+        const count = lastItems.length;
+        if (count === 0) return;
+
+        if (ev.key === "ArrowDown") {
+            ev.preventDefault();
+            const next = activeIndex < 0 ? 0 : Math.min(activeIndex + 1, count - 1);
+            setActive(next);
+            return;
+        }
+        if (ev.key === "ArrowUp") {
+            ev.preventDefault();
+            const next = activeIndex <= 0 ? 0 : activeIndex - 1;
+            setActive(next);
+            return;
+        }
+        if (ev.key === "Enter") {
+            if (activeIndex >= 0 && activeIndex < count) {
+                ev.preventDefault();
+                applySuggestion(lastItems[activeIndex]);
+            }
+            return;
+        }
+        if (ev.key === "Escape") {
+            ev.preventDefault();
+            hideSuggestions();
+        }
+    });
+
+    document.addEventListener("click", function (ev) {
+        if (ev.target === searchInput) return;
+        if (suggestWrap.contains(ev.target)) return;
+        hideSuggestions();
+    });
 })();

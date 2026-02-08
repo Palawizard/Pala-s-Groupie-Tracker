@@ -7,8 +7,10 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"palasgroupietracker/internal/api"
+	"palasgroupietracker/internal/geo"
 )
 
 type SpotifyArtistView struct {
@@ -53,6 +55,12 @@ type ArtistsPageData struct {
 	YearMaxValue    int
 	MembersMinValue int
 	MembersMaxValue int
+
+	AlbumMinBound string
+	AlbumMaxBound string
+	AlbumFrom     string
+	AlbumTo       string
+	Location      string
 }
 
 // ArtistsHandler renders the full artists page using the shared layout
@@ -148,6 +156,9 @@ func buildGroupieData(r *http.Request) (ArtistsPageData, error) {
 	yearMaxStr := strings.TrimSpace(r.URL.Query().Get("year_max"))
 	membersMinStr := strings.TrimSpace(r.URL.Query().Get("members_min"))
 	membersMaxStr := strings.TrimSpace(r.URL.Query().Get("members_max"))
+	albumFromStr := strings.TrimSpace(r.URL.Query().Get("album_from"))
+	albumToStr := strings.TrimSpace(r.URL.Query().Get("album_to"))
+	locationQuery := strings.TrimSpace(r.URL.Query().Get("location"))
 
 	yearMinBound, yearMaxBound, membersMinBound, membersMaxBound := computeGroupieBounds(artists)
 
@@ -156,6 +167,29 @@ func buildGroupieData(r *http.Request) (ArtistsPageData, error) {
 	yearMax, _ := strconv.Atoi(yearMaxStr)
 	membersMin, _ := strconv.Atoi(membersMinStr)
 	membersMax, _ := strconv.Atoi(membersMaxStr)
+
+	albumMinBoundDate, albumMaxBoundDate := computeFirstAlbumBounds(artists)
+	albumMinBound := albumMinBoundDate.Format("2006-01-02")
+	albumMaxBound := albumMaxBoundDate.Format("2006-01-02")
+
+	albumFromValue := albumMinBoundDate
+	albumToValue := albumMaxBoundDate
+	if t, ok := parseISODate(albumFromStr); ok {
+		albumFromValue = t
+	}
+	if t, ok := parseISODate(albumToStr); ok {
+		albumToValue = t
+	}
+
+	if albumFromValue.Before(albumMinBoundDate) {
+		albumFromValue = albumMinBoundDate
+	}
+	if albumToValue.After(albumMaxBoundDate) {
+		albumToValue = albumMaxBoundDate
+	}
+	if albumFromValue.After(albumToValue) {
+		albumFromValue = albumToValue
+	}
 
 	yearMinValue := yearMin
 	yearMaxValue := yearMax
@@ -201,6 +235,25 @@ func buildGroupieData(r *http.Request) (ArtistsPageData, error) {
 	filtered := make([]api.Artist, 0, len(artists))
 	lowerQuery := strings.ToLower(query)
 
+	locationNorm := normalizeForMatch(locationQuery)
+	var locationsByArtistID map[int][]string
+	if locationNorm != "" {
+		relations, relErr := api.FetchRelations()
+		if relErr != nil {
+			return ArtistsPageData{}, relErr
+		}
+		locationsByArtistID = make(map[int][]string, len(relations.Index))
+		for _, rel := range relations.Index {
+			keys := make([]string, 0, len(rel.DatesLocations))
+			for k := range rel.DatesLocations {
+				keys = append(keys, k)
+			}
+			locationsByArtistID[rel.ID] = keys
+		}
+	}
+
+	albumFilterActive := albumFromValue.After(albumMinBoundDate) || albumToValue.Before(albumMaxBoundDate)
+
 	for _, a := range artists {
 		if lowerQuery != "" {
 			// Match on artist name or member names
@@ -233,6 +286,41 @@ func buildGroupieData(r *http.Request) (ArtistsPageData, error) {
 			continue
 		}
 
+		if albumFilterActive {
+			albumDate, ok := parseFirstAlbumDate(a.FirstAlbum)
+			if !ok {
+				continue
+			}
+			if albumFromValue.After(albumMinBoundDate) && albumDate.Before(albumFromValue) {
+				continue
+			}
+			if albumToValue.Before(albumMaxBoundDate) && albumDate.After(albumToValue) {
+				continue
+			}
+		}
+
+		if locationNorm != "" {
+			keys := locationsByArtistID[a.ID]
+			if len(keys) == 0 {
+				continue
+			}
+			matched := false
+			for _, key := range keys {
+				if strings.Contains(normalizeForMatch(key), locationNorm) {
+					matched = true
+					break
+				}
+				_, _, display := geo.QueryFromLocationKey(key)
+				if display != "" && strings.Contains(normalizeForMatch(display), locationNorm) {
+					matched = true
+					break
+				}
+			}
+			if !matched {
+				continue
+			}
+		}
+
 		filtered = append(filtered, a)
 	}
 
@@ -255,6 +343,12 @@ func buildGroupieData(r *http.Request) (ArtistsPageData, error) {
 		YearMaxValue:    yearMaxValue,
 		MembersMinValue: membersMinValue,
 		MembersMaxValue: membersMaxValue,
+
+		AlbumMinBound: albumMinBound,
+		AlbumMaxBound: albumMaxBound,
+		AlbumFrom:     albumFromValue.Format("2006-01-02"),
+		AlbumTo:       albumToValue.Format("2006-01-02"),
+		Location:      locationQuery,
 	}
 
 	return data, nil
@@ -495,4 +589,79 @@ func computeGroupieBounds(artists []api.Artist) (int, int, int, int) {
 	}
 
 	return yearMin, yearMax, 1, maxMembers
+}
+
+func parseISODate(s string) (time.Time, bool) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return time.Time{}, false
+	}
+	t, err := time.Parse("2006-01-02", s)
+	if err != nil {
+		return time.Time{}, false
+	}
+	return t, true
+}
+
+func parseFirstAlbumDate(s string) (time.Time, bool) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return time.Time{}, false
+	}
+	// Groupie usually uses DD-MM-YYYY.
+	if t, err := time.Parse("02-01-2006", s); err == nil {
+		return t, true
+	}
+	// Accept ISO as a fallback if the dataset changes.
+	if t, err := time.Parse("2006-01-02", s); err == nil {
+		return t, true
+	}
+	return time.Time{}, false
+}
+
+func computeFirstAlbumBounds(artists []api.Artist) (time.Time, time.Time) {
+	var min time.Time
+	var max time.Time
+
+	for _, a := range artists {
+		d, ok := parseFirstAlbumDate(a.FirstAlbum)
+		if !ok {
+			continue
+		}
+		if min.IsZero() || d.Before(min) {
+			min = d
+		}
+		if max.IsZero() || d.After(max) {
+			max = d
+		}
+	}
+
+	if min.IsZero() || max.IsZero() {
+		// Keep sane defaults if parsing fails.
+		min = time.Date(1900, 1, 1, 0, 0, 0, 0, time.UTC)
+		max = time.Date(2100, 12, 31, 0, 0, 0, 0, time.UTC)
+	}
+	if max.Before(min) {
+		max = min
+	}
+
+	return min, max
+}
+
+func normalizeForMatch(s string) string {
+	s = strings.ToLower(strings.TrimSpace(s))
+	if s == "" {
+		return ""
+	}
+	r := strings.NewReplacer(
+		"_", " ",
+		"-", " ",
+		",", " ",
+		".", " ",
+		"/", " ",
+		"\\", " ",
+	)
+	s = r.Replace(s)
+	parts := strings.Fields(s)
+	return strings.Join(parts, " ")
 }
