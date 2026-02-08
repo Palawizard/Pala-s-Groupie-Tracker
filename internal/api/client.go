@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sync"
+	"time"
 )
 
 const (
@@ -12,11 +14,40 @@ const (
 	relationURL = "https://groupietrackers.herokuapp.com/api/relation"
 )
 
+const groupieCacheTTL = 10 * time.Minute
+
+var (
+	artistsCacheMu      sync.Mutex
+	artistsCacheFetched time.Time
+	artistsCache        []Artist
+
+	relationsCacheMu      sync.Mutex
+	relationsCacheFetched time.Time
+	relationsCache        *RelationIndex
+)
+
+func cacheFresh(since time.Time) bool {
+	return !since.IsZero() && time.Since(since) < groupieCacheTTL
+}
+
 // FetchArtists loads the full artist list from the Groupie Trackers API
 func FetchArtists() ([]Artist, error) {
+	artistsCacheMu.Lock()
+	if cacheFresh(artistsCacheFetched) && len(artistsCache) > 0 {
+		cached := artistsCache
+		artistsCacheMu.Unlock()
+		return cached, nil
+	}
+	stale := artistsCache
+	artistsCacheMu.Unlock()
+
 	// Default client is fine here, this is a school project and the endpoint is public
 	resp, err := http.Get(artistsURL)
 	if err != nil {
+		if len(stale) > 0 {
+			// Best-effort: keep the UI functional if the API is temporarily unreachable.
+			return stale, nil
+		}
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -25,8 +56,16 @@ func FetchArtists() ([]Artist, error) {
 	// The endpoint returns a JSON array of artists
 	err = json.NewDecoder(resp.Body).Decode(&artists)
 	if err != nil {
+		if len(stale) > 0 {
+			return stale, nil
+		}
 		return nil, err
 	}
+
+	artistsCacheMu.Lock()
+	artistsCache = artists
+	artistsCacheFetched = time.Now()
+	artistsCacheMu.Unlock()
 
 	return artists, nil
 }
@@ -51,8 +90,20 @@ func FetchArtistByID(id int) (*Artist, error) {
 
 // FetchRelations loads the full relations index from the Groupie Trackers API
 func FetchRelations() (*RelationIndex, error) {
+	relationsCacheMu.Lock()
+	if cacheFresh(relationsCacheFetched) && relationsCache != nil {
+		cached := relationsCache
+		relationsCacheMu.Unlock()
+		return cached, nil
+	}
+	stale := relationsCache
+	relationsCacheMu.Unlock()
+
 	resp, err := http.Get(relationURL)
 	if err != nil {
+		if stale != nil && len(stale.Index) > 0 {
+			return stale, nil
+		}
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -61,8 +112,16 @@ func FetchRelations() (*RelationIndex, error) {
 	// The endpoint returns an object with an `index` array
 	err = json.NewDecoder(resp.Body).Decode(&ri)
 	if err != nil {
+		if stale != nil && len(stale.Index) > 0 {
+			return stale, nil
+		}
 		return nil, err
 	}
+
+	relationsCacheMu.Lock()
+	relationsCache = &ri
+	relationsCacheFetched = time.Now()
+	relationsCacheMu.Unlock()
 
 	return &ri, nil
 }

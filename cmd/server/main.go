@@ -23,6 +23,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/artists", handlers.ArtistsHandler)
 	mux.HandleFunc("/artists/ajax", handlers.ArtistsAjaxHandler)
+	mux.HandleFunc("/artists/suggest", handlers.ArtistsSuggestHandler)
 	mux.HandleFunc("/artists/", handlers.ArtistDetailHandler)
 
 	// Serve static assets from `web/static` under the `/static/` URL prefix
