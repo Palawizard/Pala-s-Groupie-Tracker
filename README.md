@@ -59,3 +59,5 @@ Notes:
 
 - Switch source with the header toggle or with `?source=groupie|spotify|deezer|apple`.
 - The artists page updates live via `/artists/ajax` as you type or move sliders (Groupie mode).
+- Groupie filters: creation year, first album date, members count, and concert location.
+- Groupie search: artist/group name and member names (case-insensitive), plus typed suggestions.
