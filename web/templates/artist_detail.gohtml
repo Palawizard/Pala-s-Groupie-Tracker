@@ -247,7 +247,7 @@
                                 src=""
                                 width="100%"
                                 height="152"
-                                style="border:none;border-radius:12px"
+                                class="border-0 rounded-xl"
                                 allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
                                 loading="lazy"
                         ></iframe>
@@ -382,7 +382,7 @@
                                 src=""
                                 width="100%"
                                 height="152"
-                                style="border:none;border-radius:12px"
+                                class="border-0 rounded-xl"
                                 allow="encrypted-media; clipboard-write"
                                 loading="lazy"
                         ></iframe>
@@ -496,7 +496,7 @@
                     Concert map
                 </h2>
                 <p class="text-xs text-slate-400">
-                    Markers are placed on a real world map. Click a marker to see concert dates for that location.
+                    Click a marker to see concert dates for that location.
                 </p>
 
                 <link
@@ -505,6 +505,24 @@
                         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
                         crossorigin=""
                 />
+
+                <div class="flex flex-wrap items-center gap-2">
+                    <button
+                            id="map_fit_btn"
+                            type="button"
+                            class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-slate-200 hover:bg-slate-800/90 transition-colors"
+                    >
+                        Fit map
+                    </button>
+                    <button
+                            id="map_geolocate_btn"
+                            type="button"
+                            class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-slate-200 hover:bg-slate-800/90 transition-colors"
+                    >
+                        My location
+                    </button>
+                    <span id="map_geolocate_status" class="text-xs text-slate-400"></span>
+                </div>
 
                 <div id="map" class="w-full h-80 md:h-96 rounded-xl border border-slate-800 overflow-hidden"></div>
 
@@ -517,6 +535,17 @@
                 </script>
 
                 <script src="{{ .BasePath }}/static/js/artist_map.js"></script>
+
+                <div class="space-y-2 rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                    <h3 class="text-sm font-semibold text-slate-200">
+                        Concerts timeline
+                    </h3>
+                    <div id="concert_timeline" class="text-xs text-slate-400">
+                        Loading visualization...
+                    </div>
+                </div>
+
+                <script src="{{ .BasePath }}/static/js/artist_extras.js"></script>
             </div>
         {{ end }}
     </section>
