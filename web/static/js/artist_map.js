@@ -31,7 +31,14 @@
       '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors',
   }).addTo(map);
 
+  function markerKey(lat, lng) {
+    // Keep stable across scripts and avoid float noise.
+    return Number(lat).toFixed(5) + "," + Number(lng).toFixed(5);
+  }
+
   const bounds = [];
+  const state = window.__groupieTracker || (window.__groupieTracker = {});
+  state.locationMarkersByKey = state.locationMarkersByKey || {};
 
   for (const loc of locations) {
     const lat = Number(loc.lat);
@@ -45,13 +52,12 @@
     const popup = document.createElement("div");
     const title = document.createElement("div");
     title.textContent = name;
-    title.style.fontWeight = "600";
+    title.className = "font-semibold";
     popup.appendChild(title);
 
     if (dates.length > 0) {
       const ul = document.createElement("ul");
-      ul.style.margin = "6px 0 0";
-      ul.style.paddingLeft = "18px";
+      ul.className = "mt-1 list-disc pl-5 text-xs";
       for (const d of dates) {
         const li = document.createElement("li");
         li.textContent = String(d);
@@ -60,7 +66,8 @@
       popup.appendChild(ul);
     }
 
-    window.L.marker([lat, lng]).addTo(map).bindPopup(popup);
+    const marker = window.L.marker([lat, lng]).addTo(map).bindPopup(popup);
+    state.locationMarkersByKey[markerKey(lat, lng)] = marker;
     // Use bounds to auto-fit the map view to all markers
     bounds.push([lat, lng]);
   }
@@ -73,18 +80,16 @@
 
   map.fitBounds(bounds, { padding: [24, 24] });
 
+  // Expose a small hook so other scripts (geolocation/viz) can reuse the map instance.
+  state.leafletMap = map;
+  state.concertBounds = bounds.slice();
+
   // showMessage replaces the map with a small centered message
   function showMessage(message) {
     mapEl.innerHTML = "";
     const wrap = document.createElement("div");
     wrap.textContent = message;
-    wrap.style.height = "100%";
-    wrap.style.width = "100%";
-    wrap.style.display = "flex";
-    wrap.style.alignItems = "center";
-    wrap.style.justifyContent = "center";
-    wrap.style.fontSize = "12px";
-    wrap.style.color = "rgb(148 163 184)"; // Tailwind slate-400
+    wrap.className = "h-full w-full flex items-center justify-center text-xs text-slate-400";
     mapEl.appendChild(wrap);
   }
 })();
