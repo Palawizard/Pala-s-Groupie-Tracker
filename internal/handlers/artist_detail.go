@@ -13,6 +13,7 @@ import (
 
 	"palasgroupietracker/internal/api"
 	"palasgroupietracker/internal/geo"
+	"palasgroupietracker/internal/store"
 )
 
 type MapLocation struct {
@@ -26,11 +27,16 @@ type MapLocation struct {
 var groupieGeocoder = geo.NewGeocoder()
 
 type ArtistDetailPageData struct {
-	Title     string
-	Source    string
-	ActiveNav string
-	BasePath  string
-	Artist    *api.Artist
+	Title      string
+	Source     string
+	ActiveNav  string
+	BasePath   string
+	CurrentURL string
+	User       *store.User
+	IsAuthed   bool
+	IsFavorite bool
+	FavoriteID string
+	Artist     *api.Artist
 
 	SpotifyArtist           *api.SpotifyArtist
 	SpotifyGenre            string
@@ -65,6 +71,7 @@ func ArtistDetailHandler(w http.ResponseWriter, r *http.Request) {
 	source := getSource(r)
 	// The router is registered as `/artists/`, so the last segment is the ID
 	idSegment := path.Base(r.URL.Path)
+	user, authed := getCurrentUser(w, r)
 
 	if idSegment == "" || idSegment == "artists" {
 		// `/artists/` without an ID should go back to the list page
@@ -73,23 +80,23 @@ func ArtistDetailHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if source == "spotify" {
-		handleSpotifyArtistDetail(w, r, idSegment)
+		handleSpotifyArtistDetail(w, r, idSegment, user, authed)
 		return
 	}
 	if source == "deezer" {
-		handleDeezerArtistDetail(w, r, idSegment)
+		handleDeezerArtistDetail(w, r, idSegment, user, authed)
 		return
 	}
 	if source == "apple" {
-		handleAppleArtistDetail(w, r, idSegment)
+		handleAppleArtistDetail(w, r, idSegment, user, authed)
 		return
 	}
 
-	handleGroupieArtistDetail(w, r, idSegment)
+	handleGroupieArtistDetail(w, r, idSegment, user, authed)
 }
 
 // handleGroupieArtistDetail renders the detail page for artists from the Groupie Tracker dataset
-func handleGroupieArtistDetail(w http.ResponseWriter, r *http.Request, idSegment string) {
+func handleGroupieArtistDetail(w http.ResponseWriter, r *http.Request, idSegment string, user *store.User, authed bool) {
 	id, err := strconv.Atoi(idSegment)
 	if err != nil || id <= 0 {
 		// IDs are numeric in Groupie mode
@@ -189,11 +196,16 @@ func handleGroupieArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 	}
 
 	data := ArtistDetailPageData{
-		Title:     artist.Name,
-		Source:    "groupie",
-		ActiveNav: "artists",
-		BasePath:  getBasePath(r),
-		Artist:    artist,
+		Title:      artist.Name,
+		Source:     "groupie",
+		ActiveNav:  "artists",
+		BasePath:   getBasePath(r),
+		CurrentURL: buildCurrentURL(r),
+		User:       user,
+		IsAuthed:   authed,
+		IsFavorite: isFavorite(r, user, "groupie", idSegment),
+		FavoriteID: idSegment,
+		Artist:     artist,
 
 		SpotifyArtist:           nil,
 		SpotifyGenre:            "",
@@ -231,7 +243,7 @@ func handleGroupieArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 }
 
 // handleSpotifyArtistDetail renders the detail page for a Spotify artist ID
-func handleSpotifyArtistDetail(w http.ResponseWriter, r *http.Request, idSegment string) {
+func handleSpotifyArtistDetail(w http.ResponseWriter, r *http.Request, idSegment string, user *store.User, authed bool) {
 	if !isLikelySpotifyID(idSegment) {
 		// Protect the API from random strings and keep URLs predictable
 		http.Redirect(w, r, withBasePath(r, "/artists")+"?source=spotify", http.StatusSeeOther)
@@ -323,11 +335,16 @@ func handleSpotifyArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 	}
 
 	data := ArtistDetailPageData{
-		Title:     artist.Name,
-		Source:    "spotify",
-		ActiveNav: "artists",
-		BasePath:  getBasePath(r),
-		Artist:    nil,
+		Title:      artist.Name,
+		Source:     "spotify",
+		ActiveNav:  "artists",
+		BasePath:   getBasePath(r),
+		CurrentURL: buildCurrentURL(r),
+		User:       user,
+		IsAuthed:   authed,
+		IsFavorite: isFavorite(r, user, "spotify", idSegment),
+		FavoriteID: idSegment,
+		Artist:     nil,
 
 		SpotifyArtist:           artist,
 		SpotifyGenre:            genre,
@@ -364,7 +381,7 @@ func handleSpotifyArtistDetail(w http.ResponseWriter, r *http.Request, idSegment
 }
 
 // handleDeezerArtistDetail renders the detail page for a Deezer artist ID
-func handleDeezerArtistDetail(w http.ResponseWriter, r *http.Request, idSegment string) {
+func handleDeezerArtistDetail(w http.ResponseWriter, r *http.Request, idSegment string, user *store.User, authed bool) {
 	id, err := strconv.Atoi(idSegment)
 	if err != nil || id <= 0 {
 		http.Redirect(w, r, withBasePath(r, "/artists")+"?source=deezer", http.StatusSeeOther)
@@ -439,11 +456,16 @@ func handleDeezerArtistDetail(w http.ResponseWriter, r *http.Request, idSegment 
 	}
 
 	data := ArtistDetailPageData{
-		Title:     artist.Name,
-		Source:    "deezer",
-		ActiveNav: "artists",
-		BasePath:  getBasePath(r),
-		Artist:    nil,
+		Title:      artist.Name,
+		Source:     "deezer",
+		ActiveNav:  "artists",
+		BasePath:   getBasePath(r),
+		CurrentURL: buildCurrentURL(r),
+		User:       user,
+		IsAuthed:   authed,
+		IsFavorite: isFavorite(r, user, "deezer", idSegment),
+		FavoriteID: idSegment,
+		Artist:     nil,
 
 		SpotifyArtist:           nil,
 		SpotifyGenre:            "",
@@ -480,7 +502,7 @@ func handleDeezerArtistDetail(w http.ResponseWriter, r *http.Request, idSegment 
 }
 
 // handleAppleArtistDetail renders the detail page for an iTunes artist ID
-func handleAppleArtistDetail(w http.ResponseWriter, r *http.Request, idSegment string) {
+func handleAppleArtistDetail(w http.ResponseWriter, r *http.Request, idSegment string, user *store.User, authed bool) {
 	id, err := strconv.Atoi(idSegment)
 	if err != nil || id <= 0 {
 		http.Redirect(w, r, withBasePath(r, "/artists")+"?source=apple", http.StatusSeeOther)
@@ -541,11 +563,16 @@ func handleAppleArtistDetail(w http.ResponseWriter, r *http.Request, idSegment s
 	}
 
 	data := ArtistDetailPageData{
-		Title:     artist.ArtistName,
-		Source:    "apple",
-		ActiveNav: "artists",
-		BasePath:  getBasePath(r),
-		Artist:    nil,
+		Title:      artist.ArtistName,
+		Source:     "apple",
+		ActiveNav:  "artists",
+		BasePath:   getBasePath(r),
+		CurrentURL: buildCurrentURL(r),
+		User:       user,
+		IsAuthed:   authed,
+		IsFavorite: isFavorite(r, user, "apple", idSegment),
+		FavoriteID: idSegment,
+		Artist:     nil,
 
 		SpotifyArtist:           nil,
 		SpotifyGenre:            "",
