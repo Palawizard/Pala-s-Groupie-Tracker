@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"palasgroupietracker/internal/api"
+	"palasgroupietracker/internal/store"
 )
 
 type HomeArtistCard struct {
@@ -18,17 +19,21 @@ type HomeArtistCard struct {
 }
 
 type HomePageData struct {
-	Title     string
-	Source    string
-	ActiveNav string
-	BasePath  string
-	Featured  []HomeArtistCard
+	Title      string
+	Source     string
+	ActiveNav  string
+	BasePath   string
+	CurrentURL string
+	User       *store.User
+	IsAuthed   bool
+	Featured   []HomeArtistCard
 }
 
 // HomeHandler renders the homepage with a featured artists carousel
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	source := getSource(r)
 	basePath := getBasePath(r)
+	user, authed := getCurrentUser(w, r)
 
 	tmpl, err := template.ParseFiles(
 		"web/templates/layout.gohtml",
@@ -47,11 +52,14 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := HomePageData{
-		Title:     "Groupie Tracker",
-		Source:    source,
-		ActiveNav: "home",
-		BasePath:  basePath,
-		Featured:  featured,
+		Title:      "Groupie Tracker",
+		Source:     source,
+		ActiveNav:  "home",
+		BasePath:   basePath,
+		CurrentURL: buildCurrentURL(r),
+		User:       user,
+		IsAuthed:   authed,
+		Featured:   featured,
 	}
 
 	err = tmpl.ExecuteTemplate(w, "layout", data)

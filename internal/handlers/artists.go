@@ -11,6 +11,7 @@ import (
 
 	"palasgroupietracker/internal/api"
 	"palasgroupietracker/internal/geo"
+	"palasgroupietracker/internal/store"
 )
 
 type SpotifyArtistView struct {
@@ -36,6 +37,10 @@ type ArtistsPageData struct {
 	Title           string
 	Source          string
 	BasePath        string
+	CurrentURL      string
+	User            *store.User
+	IsAuthed        bool
+	FavoriteIDs     map[string]bool
 	Artists         []api.Artist
 	Spotify         []SpotifyArtistView
 	Deezer          []DeezerArtistView
@@ -67,6 +72,7 @@ type ArtistsPageData struct {
 func ArtistsHandler(w http.ResponseWriter, r *http.Request) {
 	source := getSource(r)
 	basePath := getBasePath(r)
+	user, authed := getCurrentUser(w, r)
 
 	var data ArtistsPageData
 	var err error
@@ -89,6 +95,10 @@ func ArtistsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data.BasePath = basePath
+	data.CurrentURL = buildCurrentURL(r)
+	data.User = user
+	data.IsAuthed = authed
+	data.FavoriteIDs = favoriteIDMap(r, user, source)
 
 	tmpl, err := template.ParseFiles(
 		"web/templates/layout.gohtml",
@@ -109,6 +119,7 @@ func ArtistsHandler(w http.ResponseWriter, r *http.Request) {
 func ArtistsAjaxHandler(w http.ResponseWriter, r *http.Request) {
 	source := getSource(r)
 	basePath := getBasePath(r)
+	user, authed := getCurrentUser(w, r)
 
 	var data ArtistsPageData
 	var err error
@@ -129,6 +140,10 @@ func ArtistsAjaxHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data.BasePath = basePath
+	data.CurrentURL = buildArtistsListURL(r)
+	data.User = user
+	data.IsAuthed = authed
+	data.FavoriteIDs = favoriteIDMap(r, user, source)
 
 	tmpl, err := template.ParseFiles("web/templates/artists.gohtml")
 	if err != nil {

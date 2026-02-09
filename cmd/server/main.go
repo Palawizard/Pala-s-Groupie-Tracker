@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -8,6 +10,7 @@ import (
 	"github.com/joho/godotenv"
 
 	"palasgroupietracker/internal/handlers"
+	"palasgroupietracker/internal/store"
 )
 
 // main is the HTTP server entrypoint
@@ -21,10 +24,28 @@ func main() {
 
 	// Use an explicit mux so routes are easy to reason about
 	mux := http.NewServeMux()
+	ctx := context.Background()
+	dbStore, err := store.OpenFromEnv(ctx)
+	if err != nil {
+		if errors.Is(err, store.ErrNoDatabaseURL) {
+			log.Println("database not configured; auth and favorites are disabled")
+		} else {
+			log.Fatal(err)
+		}
+	} else {
+		defer dbStore.Close()
+		handlers.SetStore(dbStore)
+	}
+
 	mux.HandleFunc("/artists", handlers.ArtistsHandler)
 	mux.HandleFunc("/artists/ajax", handlers.ArtistsAjaxHandler)
 	mux.HandleFunc("/artists/suggest", handlers.ArtistsSuggestHandler)
 	mux.HandleFunc("/artists/", handlers.ArtistDetailHandler)
+	mux.HandleFunc("/favorites", handlers.FavoritesHandler)
+	mux.HandleFunc("/favorites/toggle", handlers.ToggleFavoriteHandler)
+	mux.HandleFunc("/login", handlers.LoginHandler)
+	mux.HandleFunc("/register", handlers.RegisterHandler)
+	mux.HandleFunc("/logout", handlers.LogoutHandler)
 
 	// Serve static assets from `web/static` under the `/static/` URL prefix
 	fileServer := http.FileServer(http.Dir("web/static"))
