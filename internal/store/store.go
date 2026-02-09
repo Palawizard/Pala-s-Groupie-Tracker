@@ -5,7 +5,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -20,6 +22,36 @@ type Store struct {
 	DB *sql.DB
 }
 
+var sslmodePreferRe = regexp.MustCompile(`(?i)(\bsslmode\s*=\s*)('?)(prefer|allow)\2`)
+
+func normalizePostgresDSN(dsn string) string {
+	dsn = strings.TrimSpace(dsn)
+	if dsn == "" {
+		return dsn
+	}
+
+	// URL form: postgres://.../db?sslmode=...
+	if strings.HasPrefix(dsn, "postgres://") || strings.HasPrefix(dsn, "postgresql://") {
+		u, err := url.Parse(dsn)
+		if err != nil {
+			return dsn
+		}
+		q := u.Query()
+		switch strings.ToLower(q.Get("sslmode")) {
+		case "prefer", "allow":
+			// lib/pq doesn't support sslmode=prefer; require is the closest equivalent for managed DBs.
+			q.Set("sslmode", "require")
+			u.RawQuery = q.Encode()
+			return u.String()
+		default:
+			return dsn
+		}
+	}
+
+	// Keyword/value form: "host=... user=... sslmode=prefer ..."
+	return sslmodePreferRe.ReplaceAllString(dsn, `${1}${2}require${2}`)
+}
+
 // OpenFromEnv opens a Postgres connection using DATABASE_URL or SCALINGO_POSTGRESQL_URL
 func OpenFromEnv(ctx context.Context) (*Store, error) {
 	dsn := strings.TrimSpace(os.Getenv("DATABASE_URL"))
@@ -29,6 +61,8 @@ func OpenFromEnv(ctx context.Context) (*Store, error) {
 	if dsn == "" {
 		return nil, ErrNoDatabaseURL
 	}
+
+	dsn = normalizePostgresDSN(dsn)
 
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {

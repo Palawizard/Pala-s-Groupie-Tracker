@@ -16,10 +16,11 @@ import (
 // main is the HTTP server entrypoint
 func main() {
 	// Load local env vars for API keys when running outside a managed environment
-	err := godotenv.Load()
-	if err != nil {
-		// .env is optional in prod, so keep going if it's missing
-		log.Println("could not load .env file:", err)
+	// In managed platforms (Scalingo), env vars are injected and there's no `.env` file.
+	if _, err := os.Stat(".env"); err == nil {
+		if err := godotenv.Load(); err != nil {
+			log.Println("could not load .env file:", err)
+		}
 	}
 
 	// Use an explicit mux so routes are easy to reason about
