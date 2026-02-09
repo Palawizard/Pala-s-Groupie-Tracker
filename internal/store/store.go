@@ -22,7 +22,11 @@ type Store struct {
 	DB *sql.DB
 }
 
-var sslmodePreferRe = regexp.MustCompile(`(?i)(\bsslmode\s*=\s*)('?)(prefer|allow)\2`)
+var (
+	sslmodePreferReUnquoted    = regexp.MustCompile(`(?i)(\bsslmode\s*=\s*)(prefer|allow)\b`)
+	sslmodePreferReSingleQuote = regexp.MustCompile(`(?i)(\bsslmode\s*=\s*)'(prefer|allow)'\b`)
+	sslmodePreferReDoubleQuote = regexp.MustCompile(`(?i)(\bsslmode\s*=\s*)"(prefer|allow)"\b`)
+)
 
 func normalizePostgresDSN(dsn string) string {
 	dsn = strings.TrimSpace(dsn)
@@ -49,7 +53,9 @@ func normalizePostgresDSN(dsn string) string {
 	}
 
 	// Keyword/value form: "host=... user=... sslmode=prefer ..."
-	return sslmodePreferRe.ReplaceAllString(dsn, `${1}${2}require${2}`)
+	dsn = sslmodePreferReSingleQuote.ReplaceAllString(dsn, `${1}'require'`)
+	dsn = sslmodePreferReDoubleQuote.ReplaceAllString(dsn, `${1}"require"`)
+	return sslmodePreferReUnquoted.ReplaceAllString(dsn, `${1}require`)
 }
 
 // OpenFromEnv opens a Postgres connection using DATABASE_URL or SCALINGO_POSTGRESQL_URL
