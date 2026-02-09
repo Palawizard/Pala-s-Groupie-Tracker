@@ -41,7 +41,7 @@
 	                            <input type="hidden" name="artist_id" value="{{ .FavoriteID }}">
 	                            <input type="hidden" name="redirect" value="{{ .CurrentURL }}">
 	                            <button type="submit" class="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white/90 px-3 py-1 text-xs font-medium text-amber-600 hover:bg-amber-50 transition-colors dark:border-slate-700 dark:bg-slate-950/90 dark:text-amber-300 dark:hover:bg-slate-900">
-	                                {{ if .IsFavorite }}★ Saved{{ else }}☆ Save{{ end }}
+	                                {{ if .IsFavorite }}★ Favorited{{ else }}☆ Favorite{{ end }}
 	                            </button>
 	                        </form>
 	                    {{ else }}
