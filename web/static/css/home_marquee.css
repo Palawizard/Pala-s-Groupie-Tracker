@@ -9,11 +9,11 @@
 }
 
 :root {
-    /* Match the light-mode marquee background (Tailwind slate-100-ish). */
+    /* Match the light-mode marquee background (Tailwind slate-100-ish)*/
     --marquee-edge: rgb(241 245 249);
 }
 
-/* Theme toggle adds/removes the `dark` class on <html>. */
+/* Theme toggle adds/removes the `dark` class on <html>*/
 .dark {
     --marquee-edge: rgb(2 6 23);
 }

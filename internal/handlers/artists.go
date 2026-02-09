@@ -623,11 +623,11 @@ func parseFirstAlbumDate(s string) (time.Time, bool) {
 	if s == "" {
 		return time.Time{}, false
 	}
-	// Groupie usually uses DD-MM-YYYY.
+	// Groupie usually uses DD-MM-YYYY
 	if t, err := time.Parse("02-01-2006", s); err == nil {
 		return t, true
 	}
-	// Accept ISO as a fallback if the dataset changes.
+	// Accept ISO as a fallback if the dataset changes
 	if t, err := time.Parse("2006-01-02", s); err == nil {
 		return t, true
 	}
@@ -652,7 +652,7 @@ func computeFirstAlbumBounds(artists []api.Artist) (time.Time, time.Time) {
 	}
 
 	if minDate.IsZero() || maxDate.IsZero() {
-		// Keep sane defaults if parsing fails.
+		// Keep sane defaults if parsing fails
 		minDate = time.Date(1900, 1, 1, 0, 0, 0, 0, time.UTC)
 		maxDate = time.Date(2100, 12, 31, 0, 0, 0, 0, time.UTC)
 	}

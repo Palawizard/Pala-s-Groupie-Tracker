@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// normalizeSource validates a requested source and falls back to groupie.
+// normalizeSource validates a requested source and falls back to groupie
 func normalizeSource(source string) string {
 	s := strings.TrimSpace(strings.ToLower(source))
 	switch s {
@@ -16,7 +16,7 @@ func normalizeSource(source string) string {
 	}
 }
 
-// getSource reads the `source` query parameter and returns a safe known value.
+// getSource reads the `source` query parameter and returns a safe known value
 func getSource(r *http.Request) string {
 	return normalizeSource(r.URL.Query().Get("source"))
 }

@@ -32,7 +32,7 @@ type FavoritesPageData struct {
 	Cards []FavoriteCard
 }
 
-// FavoritesHandler renders the favorites page for the current user.
+// FavoritesHandler renders the favorites page for the current user
 func FavoritesHandler(w http.ResponseWriter, r *http.Request) {
 	basePath := getBasePath(r)
 
@@ -82,7 +82,7 @@ func FavoritesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// ToggleFavoriteHandler toggles a favorite for the current user.
+// ToggleFavoriteHandler toggles a favorite for the current user
 func ToggleFavoriteHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Redirect(w, r, withBasePath(r, "/artists"), http.StatusSeeOther)
@@ -235,7 +235,7 @@ func buildFavoriteCard(basePath, source, id string) (FavoriteCard, bool, error) 
 	}
 }
 
-// favoriteIDMap returns a lookup map for favorite ids in the given source.
+// favoriteIDMap returns a lookup map for favorite ids in the given source
 func favoriteIDMap(r *http.Request, user *store.User, source string) map[string]bool {
 	if user == nil || appStore == nil {
 		return nil
@@ -254,7 +254,7 @@ func favoriteIDMap(r *http.Request, user *store.User, source string) map[string]
 	return out
 }
 
-// isFavorite checks if the given artist is already saved.
+// isFavorite checks if the given artist is already saved
 func isFavorite(r *http.Request, user *store.User, source, artistID string) bool {
 	if user == nil || appStore == nil {
 		return false

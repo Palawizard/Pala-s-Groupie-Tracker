@@ -278,7 +278,7 @@ func GetSpotifyArtistAlbums(id string, market string, limit int) ([]SpotifyAlbum
 		want = 50
 	}
 	// Spotify album list API caps limit at 50; fetch a full page to reduce duplicates
-	// before de-duplication and truncation to `want`.
+	// before de-duplication and truncation to `want`
 	fetch := 50
 
 	baseURL := "https://api.spotify.com/v1/artists/" + id + "/albums"

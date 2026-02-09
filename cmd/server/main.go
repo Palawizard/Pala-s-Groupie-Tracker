@@ -62,7 +62,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		// Local dev default. On Scalingo/Heroku-like platforms, PORT is injected.
+		// Local dev default. On Scalingo/Heroku-like platforms, PORT is injected
 		port = "8080"
 	}
 	addr := ":" + port

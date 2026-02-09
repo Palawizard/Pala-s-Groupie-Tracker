@@ -7,12 +7,12 @@ import (
 )
 
 // getBasePath returns a normalized base path (no trailing slash) used when the app
-// is hosted under a subpath behind a reverse proxy (e.g. /groupie-tracker).
+// is hosted under a subpath behind a reverse proxy (e.g. /groupie-tracker)
 func getBasePath(r *http.Request) string {
-	// Preferred: gateway sets this explicitly.
+	// Preferred: gateway sets this explicitly
 	bp := strings.TrimSpace(r.Header.Get("X-Forwarded-Prefix"))
 	if bp == "" {
-		// Fallback: allow configuring locally or on platforms without that header.
+		// Fallback: allow configuring locally or on platforms without that header
 		bp = strings.TrimSpace(os.Getenv("BASE_PATH"))
 	}
 

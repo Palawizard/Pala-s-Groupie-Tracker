@@ -20,7 +20,7 @@ import (
 const sessionCookieName = "gt_session"
 const sessionDuration = 14 * 24 * time.Hour
 
-// AuthPageData powers the login and register pages.
+// AuthPageData powers the login and register pages
 type AuthPageData struct {
 	Title      string
 	Source     string
@@ -35,7 +35,7 @@ type AuthPageData struct {
 	NextURL string
 }
 
-// LoginHandler renders and processes the login form.
+// LoginHandler renders and processes the login form
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	source := getSource(r)
 	basePath := getBasePath(r)
@@ -67,7 +67,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	renderAuthTemplate(w, data, "web/templates/login.gohtml")
 }
 
-// RegisterHandler renders and processes the registration form.
+// RegisterHandler renders and processes the registration form
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	source := getSource(r)
 	basePath := getBasePath(r)
@@ -99,7 +99,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	renderAuthTemplate(w, data, "web/templates/register.gohtml")
 }
 
-// LogoutHandler clears the session cookie and deletes the server session.
+// LogoutHandler clears the session cookie and deletes the server session
 func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Redirect(w, r, withBasePath(r, "/"), http.StatusSeeOther)
@@ -320,7 +320,7 @@ func renderAuthTemplate(w http.ResponseWriter, data AuthPageData, pageTemplate s
 	}
 }
 
-// templateWithLayout loads layout + page template.
+// templateWithLayout loads layout + page template
 func templateWithLayout(pageTemplate string) (*template.Template, error) {
 	return template.ParseFiles(
 		"web/templates/layout.gohtml",
@@ -402,7 +402,7 @@ func isSecureRequest(r *http.Request) bool {
 	return proto == "https"
 }
 
-// getCurrentUser resolves the logged-in user from the session cookie.
+// getCurrentUser resolves the logged-in user from the session cookie
 func getCurrentUser(w http.ResponseWriter, r *http.Request) (*store.User, bool) {
 	if appStore == nil {
 		return nil, false
@@ -436,7 +436,7 @@ func getCurrentUser(w http.ResponseWriter, r *http.Request) (*store.User, bool) 
 	return user, true
 }
 
-// buildCurrentURL builds a base-path aware URL for the current request.
+// buildCurrentURL builds a base-path aware URL for the current request
 func buildCurrentURL(r *http.Request) string {
 	path := r.URL.Path
 	if !strings.HasPrefix(path, "/") {
@@ -455,7 +455,7 @@ func buildCurrentURL(r *http.Request) string {
 	return full
 }
 
-// buildArtistsListURL builds a return URL to the artists list for ajax contexts.
+// buildArtistsListURL builds a return URL to the artists list for ajax contexts
 func buildArtistsListURL(r *http.Request) string {
 	url := withBasePath(r, "/artists")
 	if r.URL.RawQuery != "" {
@@ -464,7 +464,7 @@ func buildArtistsListURL(r *http.Request) string {
 	return url
 }
 
-// resolveNextURL sanitizes a return path to prevent open redirects.
+// resolveNextURL sanitizes a return path to prevent open redirects
 func resolveNextURL(next string, r *http.Request) string {
 	next = strings.TrimSpace(next)
 	if next == "" {

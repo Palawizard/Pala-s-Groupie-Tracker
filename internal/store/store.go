@@ -15,12 +15,12 @@ import (
 var ErrNoDatabaseURL = errors.New("database url not set")
 var ErrEmailExists = errors.New("email already exists")
 
-// Store wraps the database connection and basic CRUD helpers.
+// Store wraps the database connection and basic CRUD helpers
 type Store struct {
 	DB *sql.DB
 }
 
-// OpenFromEnv opens a Postgres connection using DATABASE_URL or SCALINGO_POSTGRESQL_URL.
+// OpenFromEnv opens a Postgres connection using DATABASE_URL or SCALINGO_POSTGRESQL_URL
 func OpenFromEnv(ctx context.Context) (*Store, error) {
 	dsn := strings.TrimSpace(os.Getenv("DATABASE_URL"))
 	if dsn == "" {
@@ -53,7 +53,7 @@ func OpenFromEnv(ctx context.Context) (*Store, error) {
 	return s, nil
 }
 
-// Close closes the underlying database connection.
+// Close closes the underlying database connection
 func (s *Store) Close() error {
 	if s == nil || s.DB == nil {
 		return nil
@@ -61,7 +61,7 @@ func (s *Store) Close() error {
 	return s.DB.Close()
 }
 
-// Migrate ensures the minimal schema exists.
+// Migrate ensures the minimal schema exists
 func (s *Store) Migrate(ctx context.Context) error {
 	if s == nil || s.DB == nil {
 		return errors.New("store not initialized")
@@ -101,7 +101,7 @@ func (s *Store) Migrate(ctx context.Context) error {
 	return nil
 }
 
-// User represents an account in the database.
+// User represents an account in the database
 type User struct {
 	ID           int64
 	Email        string
@@ -109,7 +109,7 @@ type User struct {
 	CreatedAt    time.Time
 }
 
-// Session represents a persisted login session.
+// Session represents a persisted login session
 type Session struct {
 	ID        int64
 	UserID    int64
@@ -118,7 +118,7 @@ type Session struct {
 	ExpiresAt time.Time
 }
 
-// Favorite represents a user's saved artist for a given source.
+// Favorite represents a user's saved artist for a given source
 type Favorite struct {
 	UserID    int64
 	Source    string
@@ -126,7 +126,7 @@ type Favorite struct {
 	CreatedAt time.Time
 }
 
-// CreateUser inserts a new user, returning ErrEmailExists on duplicates.
+// CreateUser inserts a new user, returning ErrEmailExists on duplicates
 func (s *Store) CreateUser(ctx context.Context, email, passwordHash string) (*User, error) {
 	if s == nil || s.DB == nil {
 		return nil, errors.New("store not initialized")
@@ -153,7 +153,7 @@ func (s *Store) CreateUser(ctx context.Context, email, passwordHash string) (*Us
 	return &u, nil
 }
 
-// GetUserByEmail fetches a user by email.
+// GetUserByEmail fetches a user by email
 func (s *Store) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	if s == nil || s.DB == nil {
 		return nil, errors.New("store not initialized")
@@ -176,7 +176,7 @@ func (s *Store) GetUserByEmail(ctx context.Context, email string) (*User, error)
 	return &u, nil
 }
 
-// GetUserByID fetches a user by ID.
+// GetUserByID fetches a user by ID
 func (s *Store) GetUserByID(ctx context.Context, id int64) (*User, error) {
 	if s == nil || s.DB == nil {
 		return nil, errors.New("store not initialized")
@@ -194,7 +194,7 @@ func (s *Store) GetUserByID(ctx context.Context, id int64) (*User, error) {
 	return &u, nil
 }
 
-// CreateSession inserts a new session record.
+// CreateSession inserts a new session record
 func (s *Store) CreateSession(ctx context.Context, userID int64, tokenHash string, expiresAt time.Time) (*Session, error) {
 	if s == nil || s.DB == nil {
 		return nil, errors.New("store not initialized")
@@ -213,7 +213,7 @@ func (s *Store) CreateSession(ctx context.Context, userID int64, tokenHash strin
 	return &sess, nil
 }
 
-// GetSessionByTokenHash fetches a session by token hash.
+// GetSessionByTokenHash fetches a session by token hash
 func (s *Store) GetSessionByTokenHash(ctx context.Context, tokenHash string) (*Session, error) {
 	if s == nil || s.DB == nil {
 		return nil, errors.New("store not initialized")
@@ -232,7 +232,7 @@ func (s *Store) GetSessionByTokenHash(ctx context.Context, tokenHash string) (*S
 	return &sess, nil
 }
 
-// DeleteSessionByTokenHash deletes a session by token hash.
+// DeleteSessionByTokenHash deletes a session by token hash
 func (s *Store) DeleteSessionByTokenHash(ctx context.Context, tokenHash string) error {
 	if s == nil || s.DB == nil {
 		return errors.New("store not initialized")
@@ -244,7 +244,7 @@ func (s *Store) DeleteSessionByTokenHash(ctx context.Context, tokenHash string) 
 	return err
 }
 
-// ListFavoriteIDsBySource returns artist IDs for a user and source.
+// ListFavoriteIDsBySource returns artist IDs for a user and source
 func (s *Store) ListFavoriteIDsBySource(ctx context.Context, userID int64, source string) ([]string, error) {
 	if s == nil || s.DB == nil {
 		return nil, errors.New("store not initialized")
@@ -276,7 +276,7 @@ func (s *Store) ListFavoriteIDsBySource(ctx context.Context, userID int64, sourc
 	return ids, nil
 }
 
-// ListFavorites returns all favorites for a user.
+// ListFavorites returns all favorites for a user
 func (s *Store) ListFavorites(ctx context.Context, userID int64) ([]Favorite, error) {
 	if s == nil || s.DB == nil {
 		return nil, errors.New("store not initialized")
@@ -308,7 +308,7 @@ func (s *Store) ListFavorites(ctx context.Context, userID int64) ([]Favorite, er
 	return out, nil
 }
 
-// IsFavorite reports whether a user has saved an artist for a source.
+// IsFavorite reports whether a user has saved an artist for a source
 func (s *Store) IsFavorite(ctx context.Context, userID int64, source, artistID string) (bool, error) {
 	if s == nil || s.DB == nil {
 		return false, errors.New("store not initialized")
@@ -329,7 +329,7 @@ func (s *Store) IsFavorite(ctx context.Context, userID int64, source, artistID s
 	return exists, nil
 }
 
-// ToggleFavorite inserts or removes a favorite and returns true if added.
+// ToggleFavorite inserts or removes a favorite and returns true if added
 func (s *Store) ToggleFavorite(ctx context.Context, userID int64, source, artistID string) (bool, error) {
 	if s == nil || s.DB == nil {
 		return false, errors.New("store not initialized")

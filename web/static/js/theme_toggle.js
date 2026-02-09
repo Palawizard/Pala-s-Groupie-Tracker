@@ -35,7 +35,7 @@
         }
     }
 
-    // Default to dark to preserve the repo's original dark-first UI.
+    // Default to dark to preserve the repo's original dark-first UI
     applyTheme(safeGetTheme() || "dark");
 
     if (btn) {

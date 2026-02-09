@@ -100,7 +100,7 @@
     });
   }
 
-  // Timeline: each dot is a unique day with at least one concert date entry.
+  // Timeline: each dot is a unique day with at least one concert date entry
   function renderTimeline(locs) {
     if (!timelineEl) return;
 
@@ -144,7 +144,7 @@
           if (found) {
             found.count += 1;
           } else {
-            // Private key used only for dedupe.
+            // Private key used only for dedupe
             list.push({ name: locName, lat, lng, count: 1, _k: key });
           }
           concertsByDay.set(parsed.iso, list);
@@ -266,7 +266,7 @@
     }
 
     // Dots: keep them on the baseline (timeline). If multiple dots land on the same pixel X,
-    // spread them horizontally a bit so they remain individually hoverable.
+    // spread them horizontally a bit so they remain individually hoverable
     const byX = new Map(); // number -> Array<{iso: string, c: number}>
 
     for (const iso of activeDays) {
@@ -319,7 +319,7 @@
         t.textContent = `${it.iso}: ${it.c} concert(s)`;
         dot.appendChild(t);
 
-        // Bigger invisible hit area for easier clicking.
+        // Bigger invisible hit area for easier clicking
         const hit = document.createElementNS(svgNS, "circle");
         hit.setAttribute("cx", String(xAdj));
         hit.setAttribute("cy", String(baseY));
@@ -445,7 +445,7 @@
         return;
       }
 
-      // Fallback: show a temporary marker if we couldn't match one.
+      // Fallback: show a temporary marker if we couldn't match one
       if (state.timelineTempMarker) {
         try { map.removeLayer(state.timelineTempMarker); } catch { /* ignore */ }
         state.timelineTempMarker = null;
