@@ -1,8 +1,9 @@
 {{ define "content" }}
-    <section class="space-y-6">
-        <a href="{{ .BasePath }}/artists?source={{ .Source }}" class="inline-flex items-center text-xs text-slate-600 hover:text-slate-950 transition-colors dark:text-slate-400 dark:hover:text-white">
-            ← Back to artists
-        </a>
+    <!--suppress HtmlUnknownTarget -->
+	    <section class="space-y-6">
+	        <a href="{{ .BasePath }}/artists?source={{ .Source }}" class="inline-flex items-center text-xs text-slate-600 hover:text-slate-950 transition-colors dark:text-slate-400 dark:hover:text-white">
+	            ← Back to artists
+	        </a>
 
         <div class="flex flex-col md:flex-row gap-6">
             <div class="md:w-1/3">
@@ -34,19 +35,19 @@
                     <h1 class="text-3xl font-semibold tracking-tight">
                         {{ if eq .Source "spotify" }}{{ .SpotifyArtist.Name }}{{ else if eq .Source "deezer" }}{{ .DeezerArtist.Name }}{{ else if eq .Source "apple" }}{{ .AppleArtist.ArtistName }}{{ else }}{{ .Artist.Name }}{{ end }}
                     </h1>
-                    {{ if .IsAuthed }}
-                        <form method="POST" action="{{ .BasePath }}/favorites/toggle">
-                            <input type="hidden" name="source" value="{{ .Source }}">
-                            <input type="hidden" name="artist_id" value="{{ .FavoriteID }}">
-                            <input type="hidden" name="redirect" value="{{ .CurrentURL }}">
-                            <button type="submit" class="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white/90 px-3 py-1 text-xs font-medium text-amber-600 hover:bg-amber-50 transition-colors dark:border-slate-700 dark:bg-slate-950/90 dark:text-amber-300 dark:hover:bg-slate-900">
-                                {{ if .IsFavorite }}★ Favorited{{ else }}☆ Favorite{{ end }}
-                            </button>
-                        </form>
-                    {{ else }}
-                        <a href="{{ .BasePath }}/login?next={{ urlquery .CurrentURL }}" class="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white/90 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors dark:border-slate-700 dark:bg-slate-950/90 dark:text-slate-300 dark:hover:bg-slate-900">
-                            ☆ Login to favorite
-                        </a>
+	                    {{ if .IsAuthed }}
+	                        <form method="POST" action="{{ .BasePath }}/favorites/toggle">
+	                            <input type="hidden" name="source" value="{{ .Source }}">
+	                            <input type="hidden" name="artist_id" value="{{ .FavoriteID }}">
+	                            <input type="hidden" name="redirect" value="{{ .CurrentURL }}">
+	                            <button type="submit" class="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white/90 px-3 py-1 text-xs font-medium text-amber-600 hover:bg-amber-50 transition-colors dark:border-slate-700 dark:bg-slate-950/90 dark:text-amber-300 dark:hover:bg-slate-900">
+	                                {{ if .IsFavorite }}★ Saved{{ else }}☆ Save{{ end }}
+	                            </button>
+	                        </form>
+	                    {{ else }}
+	                        <a href="{{ .BasePath }}/login?next={{ urlquery .CurrentURL }}" class="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white/90 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors dark:border-slate-700 dark:bg-slate-950/90 dark:text-slate-300 dark:hover:bg-slate-900">
+	                            ☆ Login to favorite
+	                        </a>
                     {{ end }}
                 </div>
 
@@ -225,32 +226,34 @@
                 <h2 class="text-lg font-semibold">
                     Latest releases
                 </h2>
-                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {{ range .SpotifyLatestAlbums }}
-                        <button
-                                type="button"
-                                data-spotify-open
-                                data-spotify-url="{{ .ExternalURLs.Spotify }}"
-                                class="group block text-left rounded-xl border border-slate-200 bg-white hover:border-emerald-500/70 hover:bg-slate-50 transition-colors dark:border-slate-800 dark:bg-slate-900/60 dark:hover:bg-slate-900"
-                        >
-                            <div class="flex flex-col gap-2 p-3">
-                                {{ if .Images }}
-                                    <img src="{{ (index .Images 0).URL }}" alt="{{ .Name }}" class="w-full h-40 object-cover rounded-md">
-                                {{ end }}
-                                <div class="space-y-1">
-                                    <p class="text-sm font-semibold line-clamp-2 group-hover:text-emerald-300 transition-colors">
-                                        {{ .Name }}
-                                    </p>
-                                    <p class="text-xs text-slate-600 dark:text-slate-400">
-                                        {{ .AlbumType }} • {{ .ReleaseDate }}
-                                    </p>
-                                </div>
-                            </div>
-                        </button>
-                    {{ end }}
-                </div>
-            </div>
-            {{ end }}
+	                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+	                    {{ range .SpotifyLatestAlbums }}
+	                        <a
+	                                href="{{ .ExternalURLs.Spotify }}"
+	                                target="_blank"
+	                                rel="noopener noreferrer"
+	                                data-spotify-open
+	                                data-spotify-url="{{ .ExternalURLs.Spotify }}"
+	                                class="group block text-left rounded-xl border border-slate-200 bg-white hover:border-emerald-500/70 hover:bg-slate-50 transition-colors dark:border-slate-800 dark:bg-slate-900/60 dark:hover:bg-slate-900"
+	                        >
+	                            <div class="flex flex-col gap-2 p-3">
+	                                {{ if .Images }}
+	                                    <img src="{{ (index .Images 0).URL }}" alt="{{ .Name }}" class="w-full h-40 object-cover rounded-md">
+	                                {{ end }}
+	                                <div class="space-y-1">
+	                                    <p class="text-sm font-semibold line-clamp-2 group-hover:text-emerald-300 transition-colors">
+	                                        {{ .Name }}
+	                                    </p>
+	                                    <p class="text-xs text-slate-600 dark:text-slate-400">
+	                                        {{ .AlbumType }} • {{ .ReleaseDate }}
+	                                    </p>
+	                                </div>
+	                            </div>
+	                        </a>
+	                    {{ end }}
+	                </div>
+	            </div>
+	            {{ end }}
 
             <div id="spotify_modal_root" class="fixed inset-0 z-50 hidden items-center justify-center" aria-hidden="true">
                 <div id="spotify_modal_backdrop" class="absolute inset-0 bg-black/70"></div>
@@ -354,19 +357,21 @@
                 <h2 class="text-lg font-semibold">
                     Latest releases
                 </h2>
-                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {{ range .DeezerLatestAlbums }}
-                        <button
-                                type="button"
-                                data-deezer-open
-                                data-deezer-type="album"
-                                data-deezer-id="{{ .ID }}"
-                                data-deezer-url="{{ .Link }}"
-                                class="group block text-left rounded-xl border border-slate-200 bg-white hover:border-emerald-500/70 hover:bg-slate-50 transition-colors dark:border-slate-800 dark:bg-slate-900/60 dark:hover:bg-slate-900"
-                        >
-                            <div class="flex flex-col gap-2 p-3">
-                                {{ if .CoverXL }}
-                                    <img src="{{ .CoverXL }}" alt="{{ .Title }}" class="w-full h-40 object-cover rounded-md">
+	                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+	                    {{ range .DeezerLatestAlbums }}
+	                        <a
+	                                href="{{ .Link }}"
+	                                target="_blank"
+	                                rel="noopener noreferrer"
+	                                data-deezer-open
+	                                data-deezer-type="album"
+	                                data-deezer-id="{{ .ID }}"
+	                                data-deezer-url="{{ .Link }}"
+	                                class="group block text-left rounded-xl border border-slate-200 bg-white hover:border-emerald-500/70 hover:bg-slate-50 transition-colors dark:border-slate-800 dark:bg-slate-900/60 dark:hover:bg-slate-900"
+	                        >
+	                            <div class="flex flex-col gap-2 p-3">
+	                                {{ if .CoverXL }}
+	                                    <img src="{{ .CoverXL }}" alt="{{ .Title }}" class="w-full h-40 object-cover rounded-md">
                                 {{ else if .CoverBig }}
                                     <img src="{{ .CoverBig }}" alt="{{ .Title }}" class="w-full h-40 object-cover rounded-md">
                                 {{ else if .CoverMedium }}
@@ -378,14 +383,14 @@
                                     </p>
                                     <p class="text-xs text-slate-600 dark:text-slate-400">
                                         {{ if .RecordType }}{{ .RecordType }} • {{ end }}{{ .ReleaseDate }}{{ if gt .NbTracks 0 }} • {{ .NbTracks }} tracks{{ end }}{{ if gt .Fans 0 }} • {{ .Fans }} fans{{ end }}
-                                    </p>
-                                </div>
-                            </div>
-                        </button>
-                    {{ end }}
-                </div>
-            </div>
-            {{ end }}
+	                                    </p>
+	                                </div>
+	                            </div>
+	                        </a>
+	                    {{ end }}
+	                </div>
+	            </div>
+	            {{ end }}
 
             <div id="deezer_modal_root" class="fixed inset-0 z-50 hidden items-center justify-center" aria-hidden="true">
                 <div id="deezer_modal_backdrop" class="absolute inset-0 bg-black/70"></div>
@@ -515,12 +520,7 @@
                     Click a marker to see concert dates for that location.
                 </p>
 
-                <link
-                        rel="stylesheet"
-                        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-                        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-                        crossorigin=""
-                />
+	                <link rel="stylesheet" href="{{ .BasePath }}/static/vendor/leaflet/leaflet.css">
 
                 <div class="flex flex-wrap items-center gap-2">
                     <button
@@ -544,11 +544,7 @@
 
                 <script id="artist_locations_json" type="application/json">{{ .LocationsJSON }}</script>
 
-                <script
-                        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-                        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-                        crossorigin="">
-                </script>
+	                <script src="{{ .BasePath }}/static/vendor/leaflet/leaflet.js"></script>
 
                 <script src="{{ .BasePath }}/static/js/artist_map.js"></script>
 

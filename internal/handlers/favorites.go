@@ -53,7 +53,7 @@ func FavoritesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cards, err := buildFavoriteCardsFromFavorites(r, basePath, favorites)
+	cards, err := buildFavoriteCardsFromFavorites(basePath, favorites)
 	if err != nil {
 		http.Error(w, "failed to load favorites", http.StatusInternalServerError)
 		return
@@ -117,11 +117,11 @@ func ToggleFavoriteHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, redirectTo, http.StatusSeeOther)
 }
 
-func buildFavoriteCardsFromFavorites(r *http.Request, basePath string, favorites []store.Favorite) ([]FavoriteCard, error) {
+func buildFavoriteCardsFromFavorites(basePath string, favorites []store.Favorite) ([]FavoriteCard, error) {
 	cards := make([]FavoriteCard, 0, len(favorites))
 
 	for _, fav := range favorites {
-		card, ok, err := buildFavoriteCard(r, basePath, fav.Source, fav.ArtistID)
+		card, ok, err := buildFavoriteCard(basePath, fav.Source, fav.ArtistID)
 		if err != nil {
 			return nil, err
 		}
@@ -133,7 +133,7 @@ func buildFavoriteCardsFromFavorites(r *http.Request, basePath string, favorites
 	return cards, nil
 }
 
-func buildFavoriteCard(r *http.Request, basePath, source, id string) (FavoriteCard, bool, error) {
+func buildFavoriteCard(basePath, source, id string) (FavoriteCard, bool, error) {
 	switch source {
 	case "spotify":
 		artist, err := api.GetSpotifyArtist(id)

@@ -450,14 +450,13 @@
         try { map.removeLayer(state.timelineTempMarker); } catch { /* ignore */ }
         state.timelineTempMarker = null;
       }
-      const m = L.circleMarker([lat, lng], {
+      state.timelineTempMarker = L.circleMarker([lat, lng], {
         radius: 7,
         color: "#38bdf8",
         weight: 2,
         fillColor: "#38bdf8",
         fillOpacity: 0.25,
       }).addTo(map);
-      state.timelineTempMarker = m;
       map.setView([lat, lng], Math.max(map.getZoom(), 5));
     }
   }

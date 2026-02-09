@@ -635,32 +635,32 @@ func parseFirstAlbumDate(s string) (time.Time, bool) {
 }
 
 func computeFirstAlbumBounds(artists []api.Artist) (time.Time, time.Time) {
-	var min time.Time
-	var max time.Time
+	var minDate time.Time
+	var maxDate time.Time
 
 	for _, a := range artists {
 		d, ok := parseFirstAlbumDate(a.FirstAlbum)
 		if !ok {
 			continue
 		}
-		if min.IsZero() || d.Before(min) {
-			min = d
+		if minDate.IsZero() || d.Before(minDate) {
+			minDate = d
 		}
-		if max.IsZero() || d.After(max) {
-			max = d
+		if maxDate.IsZero() || d.After(maxDate) {
+			maxDate = d
 		}
 	}
 
-	if min.IsZero() || max.IsZero() {
+	if minDate.IsZero() || maxDate.IsZero() {
 		// Keep sane defaults if parsing fails.
-		min = time.Date(1900, 1, 1, 0, 0, 0, 0, time.UTC)
-		max = time.Date(2100, 12, 31, 0, 0, 0, 0, time.UTC)
+		minDate = time.Date(1900, 1, 1, 0, 0, 0, 0, time.UTC)
+		maxDate = time.Date(2100, 12, 31, 0, 0, 0, 0, time.UTC)
 	}
-	if max.Before(min) {
-		max = min
+	if maxDate.Before(minDate) {
+		maxDate = minDate
 	}
 
-	return min, max
+	return minDate, maxDate
 }
 
 func normalizeForMatch(s string) string {

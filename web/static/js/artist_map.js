@@ -66,8 +66,8 @@
       popup.appendChild(ul);
     }
 
-    const marker = window.L.marker([lat, lng]).addTo(map).bindPopup(popup);
-    state.locationMarkersByKey[markerKey(lat, lng)] = marker;
+    state.locationMarkersByKey[markerKey(lat, lng)] =
+      window.L.marker([lat, lng]).addTo(map).bindPopup(popup);
     // Use bounds to auto-fit the map view to all markers
     bounds.push([lat, lng]);
   }
