@@ -1,6 +1,6 @@
 {{ define "content" }}
     <section class="space-y-6">
-        <a href="{{ .BasePath }}/artists?source={{ .Source }}" class="inline-flex items-center text-xs text-slate-400 hover:text-white transition-colors">
+        <a href="{{ .BasePath }}/artists?source={{ .Source }}" class="inline-flex items-center text-xs text-slate-600 hover:text-slate-950 transition-colors dark:text-slate-400 dark:hover:text-white">
             ← Back to artists
         </a>
 
@@ -8,24 +8,24 @@
             <div class="md:w-1/3">
                 {{ if eq .Source "spotify" }}
                     {{ if and .SpotifyArtist .SpotifyArtist.Images }}
-                        <img src="{{ (index .SpotifyArtist.Images 0).URL }}" alt="{{ .SpotifyArtist.Name }}" class="w-full rounded-xl border border-slate-800">
+                        <img src="{{ (index .SpotifyArtist.Images 0).URL }}" alt="{{ .SpotifyArtist.Name }}" class="w-full rounded-xl border border-slate-200 dark:border-slate-800">
                     {{ end }}
                 {{ else if eq .Source "deezer" }}
                     {{ if .DeezerArtist }}
                         {{ if .DeezerArtist.PictureXL }}
-                            <img src="{{ .DeezerArtist.PictureXL }}" alt="{{ .DeezerArtist.Name }}" class="w-full rounded-xl border border-slate-800">
+                            <img src="{{ .DeezerArtist.PictureXL }}" alt="{{ .DeezerArtist.Name }}" class="w-full rounded-xl border border-slate-200 dark:border-slate-800">
                         {{ else if .DeezerArtist.PictureBig }}
-                            <img src="{{ .DeezerArtist.PictureBig }}" alt="{{ .DeezerArtist.Name }}" class="w-full rounded-xl border border-slate-800">
+                            <img src="{{ .DeezerArtist.PictureBig }}" alt="{{ .DeezerArtist.Name }}" class="w-full rounded-xl border border-slate-200 dark:border-slate-800">
                         {{ else if .DeezerArtist.PictureMedium }}
-                            <img src="{{ .DeezerArtist.PictureMedium }}" alt="{{ .DeezerArtist.Name }}" class="w-full rounded-xl border border-slate-800">
+                            <img src="{{ .DeezerArtist.PictureMedium }}" alt="{{ .DeezerArtist.Name }}" class="w-full rounded-xl border border-slate-200 dark:border-slate-800">
                         {{ end }}
                     {{ end }}
                 {{ else if eq .Source "apple" }}
                     {{ if .AppleHeroImage }}
-                        <img src="{{ .AppleHeroImage }}" alt="{{ .AppleArtist.ArtistName }}" class="w-full rounded-xl border border-slate-800">
+                        <img src="{{ .AppleHeroImage }}" alt="{{ .AppleArtist.ArtistName }}" class="w-full rounded-xl border border-slate-200 dark:border-slate-800">
                     {{ end }}
                 {{ else }}
-                    <img src="{{ .Artist.Image }}" alt="{{ .Artist.Name }}" class="w-full rounded-xl border border-slate-800">
+                    <img src="{{ .Artist.Image }}" alt="{{ .Artist.Name }}" class="w-full rounded-xl border border-slate-200 dark:border-slate-800">
                 {{ end }}
             </div>
 
@@ -36,83 +36,83 @@
 
                 {{ if eq .Source "spotify" }}
                     {{ if .SpotifyGenre }}
-                        <p class="text-sm text-slate-300">
+                        <p class="text-sm text-slate-600 dark:text-slate-300">
                             Genres: {{ .SpotifyGenre }}
                         </p>
                     {{ end }}
                     {{ if gt .SpotifyFollowers 0 }}
-                        <p class="text-sm text-slate-300">
+                        <p class="text-sm text-slate-600 dark:text-slate-300">
                             Followers: {{ .SpotifyFollowers }}
                         </p>
                     {{ end }}
                     {{ if gt .SpotifyMonthlyListeners 0 }}
-                        <p class="text-sm text-slate-300">
+                        <p class="text-sm text-slate-600 dark:text-slate-300">
                             LastFM monthly listeners: {{ .SpotifyMonthlyListeners }}
                         </p>
                     {{ end }}
                     {{ if .SpotifyArtist.ExternalURLs.Spotify }}
-                        <p class="text-sm text-slate-300">
-                            <a href="{{ .SpotifyArtist.ExternalURLs.Spotify }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-emerald-400 hover:bg-slate-800/90 transition-colors">
+                        <p class="text-sm text-slate-600 dark:text-slate-300">
+                            <a href="{{ .SpotifyArtist.ExternalURLs.Spotify }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full border border-slate-300 px-3 py-1 text-xs font-medium text-emerald-600 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-emerald-400 dark:hover:bg-slate-800/90">
                                 Open in Spotify
                             </a>
                         </p>
                     {{ end }}
                 {{ else if eq .Source "deezer" }}
                     {{ if gt .DeezerFans 0 }}
-                        <p class="text-sm text-slate-300">
+                        <p class="text-sm text-slate-600 dark:text-slate-300">
                             Fans: {{ .DeezerFans }}
                         </p>
                     {{ end }}
                     {{ if gt .DeezerAlbumsCount 0 }}
-                        <p class="text-sm text-slate-300">
+                        <p class="text-sm text-slate-600 dark:text-slate-300">
                             Albums: {{ .DeezerAlbumsCount }}
                         </p>
                     {{ end }}
-                    <p class="text-sm text-slate-300">
+                    <p class="text-sm text-slate-600 dark:text-slate-300">
                         Radio available: {{ if .DeezerHasRadio }}Yes{{ else }}No{{ end }}
                     </p>
                     {{ if gt .DeezerMonthlyListeners 0 }}
-                        <p class="text-sm text-slate-300">
+                        <p class="text-sm text-slate-600 dark:text-slate-300">
                             LastFM monthly listeners: {{ .DeezerMonthlyListeners }}
                         </p>
                     {{ end }}
                     {{ if and .DeezerArtist .DeezerArtist.Link }}
-                        <p class="text-sm text-slate-300">
-                            <a href="{{ .DeezerArtist.Link }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-emerald-400 hover:bg-slate-800/90 transition-colors">
+                        <p class="text-sm text-slate-600 dark:text-slate-300">
+                            <a href="{{ .DeezerArtist.Link }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full border border-slate-300 px-3 py-1 text-xs font-medium text-emerald-600 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-emerald-400 dark:hover:bg-slate-800/90">
                                 Open in Deezer
                             </a>
                         </p>
                     {{ end }}
                 {{ else if eq .Source "apple" }}
                     {{ if .AppleGenre }}
-                        <p class="text-sm text-slate-300">
+                        <p class="text-sm text-slate-600 dark:text-slate-300">
                             Genre: {{ .AppleGenre }}
                         </p>
                     {{ end }}
                     {{ if gt .AppleMonthlyListeners 0 }}
-                        <p class="text-sm text-slate-300">
+                        <p class="text-sm text-slate-600 dark:text-slate-300">
                             LastFM monthly listeners: {{ .AppleMonthlyListeners }}
                         </p>
                     {{ end }}
                     {{ if and .AppleArtist .AppleArtist.ArtistLinkURL }}
-                        <p class="text-sm text-slate-300">
-                            <a href="{{ .AppleArtist.ArtistLinkURL }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-emerald-400 hover:bg-slate-800/90 transition-colors">
+                        <p class="text-sm text-slate-600 dark:text-slate-300">
+                            <a href="{{ .AppleArtist.ArtistLinkURL }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full border border-slate-300 px-3 py-1 text-xs font-medium text-emerald-600 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-emerald-400 dark:hover:bg-slate-800/90">
                                 Open in Apple Music
                             </a>
                         </p>
                     {{ end }}
                 {{ else }}
-                    <p class="text-sm text-slate-300">
+                    <p class="text-sm text-slate-600 dark:text-slate-300">
                         Creation date: {{ .Artist.CreationDate }}
                     </p>
-                    <p class="text-sm text-slate-300">
+                    <p class="text-sm text-slate-600 dark:text-slate-300">
                         First album: {{ .Artist.FirstAlbum }}
                     </p>
                     <div>
-                        <h2 class="text-sm font-semibold text-slate-200 mb-1">
+                        <h2 class="text-sm font-semibold text-slate-900 mb-1 dark:text-slate-200">
                             Members
                         </h2>
-                        <ul class="text-sm text-slate-300 list-disc list-inside space-y-1">
+                        <ul class="text-sm text-slate-700 list-disc list-inside space-y-1 dark:text-slate-300">
                             {{ range .Artist.Members }}
                                 <li>{{ . }}</li>
                             {{ end }}
@@ -121,16 +121,16 @@
                 {{ end }}
 
                 {{ if .HasWiki }}
-                    <div class="space-y-2 rounded-xl border border-slate-800 bg-slate-900/60 p-4 mt-2">
+                    <div class="space-y-2 rounded-xl border border-slate-200 bg-white p-4 mt-2 dark:border-slate-800 dark:bg-slate-900/60">
                         <div class="flex items-center justify-between gap-2">
-                            <h2 class="text-sm font-semibold text-slate-200">
+                            <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-200">
                                 Wikipedia
                             </h2>
-                            <a href="{{ .WikiURL }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-slate-200 hover:bg-slate-800/90 transition-colors">
+                            <a href="{{ .WikiURL }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800/90">
                                 Wikipedia
                             </a>
                         </div>
-                        <p class="text-sm text-slate-300">
+                        <p class="text-sm text-slate-600 dark:text-slate-300">
                             {{ .WikiSummary }}
                         </p>
                     </div>
@@ -146,9 +146,9 @@
                 <h2 class="text-lg font-semibold">
                     Popular tracks
                 </h2>
-                <div class="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/60">
-                    <table class="min-w-full text-sm text-slate-200">
-                        <thead class="bg-slate-900/80 text-xs uppercase text-slate-400">
+                <div class="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/60">
+                    <table class="min-w-full text-sm text-slate-800 dark:text-slate-200">
+                        <thead class="bg-slate-100 text-xs uppercase text-slate-600 dark:bg-slate-900/80 dark:text-slate-400">
                         <tr>
                             <th class="px-4 py-2 text-left">Title</th>
                             <th class="px-4 py-2 text-left hidden sm:table-cell">Album</th>
@@ -156,9 +156,9 @@
                             <th class="px-4 py-2 text-right">Play</th>
                         </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-800">
+                        <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
                         {{ range $i, $track := .SpotifyTopTracks }}
-                            <tr class="hover:bg-slate-800/70 transition-colors">
+                            <tr class="hover:bg-slate-50 transition-colors dark:hover:bg-slate-800/70">
                                 <td class="px-4 py-2 align-middle">
                                     <div class="flex items-center gap-3">
                                         {{ if $track.Album.Images }}
@@ -168,16 +168,16 @@
                                             <div class="text-sm font-medium">
                                                 {{ $track.Name }}
                                             </div>
-                                            <div class="text-xs text-slate-400 line-clamp-1">
+                                            <div class="text-xs text-slate-500 line-clamp-1 dark:text-slate-400">
                                                 {{ $track.Album.Name }}
                                             </div>
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-4 py-2 text-xs text-slate-400 align-middle hidden sm:table-cell">
+                                <td class="px-4 py-2 text-xs text-slate-500 align-middle hidden sm:table-cell dark:text-slate-400">
                                     {{ $track.Album.Name }}
                                 </td>
-                                <td class="px-4 py-2 text-xs text-slate-400 text-right align-middle hidden sm:table-cell">
+                                <td class="px-4 py-2 text-xs text-slate-500 text-right align-middle hidden sm:table-cell dark:text-slate-400">
                                     {{ $track.Popularity }}
                                 </td>
                                 <td class="px-4 py-2 text-right align-middle">
@@ -186,7 +186,7 @@
                                                 type="button"
                                                 data-spotify-open
                                                 data-spotify-url="{{ $track.ExternalURLs.Spotify }}"
-                                                class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-emerald-400 hover:bg-slate-800/90 transition-colors"
+                                                class="inline-flex items-center rounded-full border border-slate-300 px-3 py-1 text-xs font-medium text-emerald-600 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-emerald-400 dark:hover:bg-slate-800/90"
                                         >
                                             Open
                                         </button>
@@ -215,7 +215,7 @@
                                 type="button"
                                 data-spotify-open
                                 data-spotify-url="{{ .ExternalURLs.Spotify }}"
-                                class="group block text-left rounded-xl border border-slate-800 bg-slate-900/60 hover:border-emerald-500/70 hover:bg-slate-900 transition-colors"
+                                class="group block text-left rounded-xl border border-slate-200 bg-white hover:border-emerald-500/70 hover:bg-slate-50 transition-colors dark:border-slate-800 dark:bg-slate-900/60 dark:hover:bg-slate-900"
                         >
                             <div class="flex flex-col gap-2 p-3">
                                 {{ if .Images }}
@@ -225,7 +225,7 @@
                                     <p class="text-sm font-semibold line-clamp-2 group-hover:text-emerald-300 transition-colors">
                                         {{ .Name }}
                                     </p>
-                                    <p class="text-xs text-slate-400">
+                                    <p class="text-xs text-slate-600 dark:text-slate-400">
                                         {{ .AlbumType }} • {{ .ReleaseDate }}
                                     </p>
                                 </div>
@@ -239,7 +239,7 @@
             <div id="spotify_modal_root" class="fixed inset-0 z-50 hidden items-center justify-center" aria-hidden="true">
                 <div id="spotify_modal_backdrop" class="absolute inset-0 bg-black/70"></div>
 
-                <div class="relative w-[min(92vw,540px)] rounded-xl border border-slate-800 bg-slate-950 shadow-2xl">
+                <div class="relative w-[min(92vw,540px)] rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950">
                     <div class="p-4">
                         <iframe
                                 id="spotify_modal_iframe"
@@ -253,10 +253,10 @@
                         ></iframe>
 
                         <div class="mt-4 flex items-center justify-end gap-2">
-                            <a id="spotify_modal_open_spotify" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-emerald-400 hover:bg-slate-900 transition-colors">
+                            <a id="spotify_modal_open_spotify" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full border border-slate-300 px-3 py-1 text-xs font-medium text-emerald-600 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-emerald-400 dark:hover:bg-slate-900">
                                 Open in Spotify
                             </a>
-                            <button id="spotify_modal_close_btn" type="button" class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-slate-200 hover:bg-slate-900 transition-colors">
+                            <button id="spotify_modal_close_btn" type="button" class="inline-flex items-center rounded-full border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900">
                                 Close
                             </button>
                         </div>
@@ -273,9 +273,9 @@
                 <h2 class="text-lg font-semibold">
                     Top tracks
                 </h2>
-                <div class="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/60">
-                    <table class="min-w-full text-sm text-slate-200">
-                        <thead class="bg-slate-900/80 text-xs uppercase text-slate-400">
+                <div class="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/60">
+                    <table class="min-w-full text-sm text-slate-800 dark:text-slate-200">
+                        <thead class="bg-slate-100 text-xs uppercase text-slate-600 dark:bg-slate-900/80 dark:text-slate-400">
                         <tr>
                             <th class="px-4 py-2 text-left">Title</th>
                             <th class="px-4 py-2 text-left hidden sm:table-cell">Album</th>
@@ -283,9 +283,9 @@
                             <th class="px-4 py-2 text-right">Play</th>
                         </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-800">
+                        <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
                         {{ range $i, $track := .DeezerTopTracks }}
-                            <tr class="hover:bg-slate-800/70 transition-colors">
+                            <tr class="hover:bg-slate-50 transition-colors dark:hover:bg-slate-800/70">
                                 <td class="px-4 py-2 align-middle">
                                     <div class="flex items-center gap-3">
                                         {{ if $track.Album.CoverMedium }}
@@ -295,16 +295,16 @@
                                             <div class="text-sm font-medium">
                                                 {{ $track.Title }}
                                             </div>
-                                            <div class="text-xs text-slate-400 line-clamp-1">
+                                            <div class="text-xs text-slate-500 line-clamp-1 dark:text-slate-400">
                                                 {{ $track.Album.Title }}
                                             </div>
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-4 py-2 text-xs text-slate-400 align-middle hidden sm:table-cell">
+                                <td class="px-4 py-2 text-xs text-slate-500 align-middle hidden sm:table-cell dark:text-slate-400">
                                     {{ $track.Album.Title }}
                                 </td>
-                                <td class="px-4 py-2 text-xs text-slate-400 text-right align-middle hidden sm:table-cell">
+                                <td class="px-4 py-2 text-xs text-slate-500 text-right align-middle hidden sm:table-cell dark:text-slate-400">
                                     {{ $track.Rank }}
                                 </td>
                                 <td class="px-4 py-2 text-right align-middle">
@@ -315,7 +315,7 @@
                                                 data-deezer-type="track"
                                                 data-deezer-id="{{ $track.ID }}"
                                                 data-deezer-url="{{ $track.Link }}"
-                                                class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-emerald-400 hover:bg-slate-800/90 transition-colors"
+                                                class="inline-flex items-center rounded-full border border-slate-300 px-3 py-1 text-xs font-medium text-emerald-600 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-emerald-400 dark:hover:bg-slate-800/90"
                                         >
                                             Open
                                         </button>
@@ -346,7 +346,7 @@
                                 data-deezer-type="album"
                                 data-deezer-id="{{ .ID }}"
                                 data-deezer-url="{{ .Link }}"
-                                class="group block text-left rounded-xl border border-slate-800 bg-slate-900/60 hover:border-emerald-500/70 hover:bg-slate-900 transition-colors"
+                                class="group block text-left rounded-xl border border-slate-200 bg-white hover:border-emerald-500/70 hover:bg-slate-50 transition-colors dark:border-slate-800 dark:bg-slate-900/60 dark:hover:bg-slate-900"
                         >
                             <div class="flex flex-col gap-2 p-3">
                                 {{ if .CoverXL }}
@@ -360,7 +360,7 @@
                                     <p class="text-sm font-semibold line-clamp-2 group-hover:text-emerald-300 transition-colors">
                                         {{ .Title }}
                                     </p>
-                                    <p class="text-xs text-slate-400">
+                                    <p class="text-xs text-slate-600 dark:text-slate-400">
                                         {{ if .RecordType }}{{ .RecordType }} • {{ end }}{{ .ReleaseDate }}{{ if gt .NbTracks 0 }} • {{ .NbTracks }} tracks{{ end }}{{ if gt .Fans 0 }} • {{ .Fans }} fans{{ end }}
                                     </p>
                                 </div>
@@ -374,7 +374,7 @@
             <div id="deezer_modal_root" class="fixed inset-0 z-50 hidden items-center justify-center" aria-hidden="true">
                 <div id="deezer_modal_backdrop" class="absolute inset-0 bg-black/70"></div>
 
-                <div class="relative w-[min(92vw,540px)] rounded-xl border border-slate-800 bg-slate-950 shadow-2xl">
+                <div class="relative w-[min(92vw,540px)] rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950">
                     <div class="p-4">
                         <iframe
                                 id="deezer_modal_iframe"
@@ -388,10 +388,10 @@
                         ></iframe>
 
                         <div class="mt-4 flex items-center justify-end gap-2">
-                            <a id="deezer_modal_open_deezer" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-emerald-400 hover:bg-slate-900 transition-colors">
+                            <a id="deezer_modal_open_deezer" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full border border-slate-300 px-3 py-1 text-xs font-medium text-emerald-600 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-emerald-400 dark:hover:bg-slate-900">
                                 Open in Deezer
                             </a>
-                            <button id="deezer_modal_close_btn" type="button" class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-slate-200 hover:bg-slate-900 transition-colors">
+                            <button id="deezer_modal_close_btn" type="button" class="inline-flex items-center rounded-full border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900">
                                 Close
                             </button>
                         </div>
@@ -408,18 +408,18 @@
                     <h2 class="text-lg font-semibold">
                         Top tracks
                     </h2>
-                    <div class="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/60">
-                        <table class="min-w-full text-sm text-slate-200">
-                            <thead class="bg-slate-900/80 text-xs uppercase text-slate-400">
+                    <div class="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/60">
+                        <table class="min-w-full text-sm text-slate-800 dark:text-slate-200">
+                            <thead class="bg-slate-100 text-xs uppercase text-slate-600 dark:bg-slate-900/80 dark:text-slate-400">
                             <tr>
                                 <th class="px-4 py-2 text-left">Title</th>
                                 <th class="px-4 py-2 text-left hidden sm:table-cell">Album</th>
                                 <th class="px-4 py-2 text-right">Play</th>
                             </tr>
                             </thead>
-                            <tbody class="divide-y divide-slate-800">
+                            <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
                             {{ range .AppleTopTracks }}
-                                <tr class="hover:bg-slate-800/70 transition-colors">
+                                <tr class="hover:bg-slate-50 transition-colors dark:hover:bg-slate-800/70">
                                     <td class="px-4 py-2 align-middle">
                                         <div class="flex items-center gap-3">
                                             {{ if .ArtworkURL100 }}
@@ -429,13 +429,13 @@
                                                 <div class="text-sm font-medium">
                                                     {{ .TrackName }}
                                                 </div>
-                                                <div class="text-xs text-slate-400 line-clamp-1">
+                                                <div class="text-xs text-slate-500 line-clamp-1 dark:text-slate-400">
                                                     {{ .CollectionName }}
                                                 </div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="px-4 py-2 text-xs text-slate-400 align-middle hidden sm:table-cell">
+                                    <td class="px-4 py-2 text-xs text-slate-500 align-middle hidden sm:table-cell dark:text-slate-400">
                                         {{ .CollectionName }}
                                     </td>
                                     <td class="px-4 py-2 text-right align-middle">
@@ -444,7 +444,7 @@
                                                 <source src="{{ .PreviewURL }}" type="audio/mpeg">
                                             </audio>
                                         {{ else if .TrackViewURL }}
-                                            <a href="{{ .TrackViewURL }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-emerald-400 hover:bg-slate-800/90 transition-colors">
+                                            <a href="{{ .TrackViewURL }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full border border-slate-300 px-3 py-1 text-xs font-medium text-emerald-600 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-emerald-400 dark:hover:bg-slate-800/90">
                                                 Open
                                             </a>
                                         {{ end }}
@@ -468,7 +468,7 @@
                                     href="{{ .CollectionViewURL }}"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    class="group block text-left rounded-xl border border-slate-800 bg-slate-900/60 hover:border-emerald-500/70 hover:bg-slate-900 transition-colors"
+                                    class="group block text-left rounded-xl border border-slate-200 bg-white hover:border-emerald-500/70 hover:bg-slate-50 transition-colors dark:border-slate-800 dark:bg-slate-900/60 dark:hover:bg-slate-900"
                             >
                                 <div class="flex flex-col gap-2 p-3">
                                     {{ if .ArtworkURL100 }}
@@ -478,7 +478,7 @@
                                         <p class="text-sm font-semibold line-clamp-2 group-hover:text-emerald-300 transition-colors">
                                             {{ .CollectionName }}
                                         </p>
-                                        <p class="text-xs text-slate-400">
+                                        <p class="text-xs text-slate-600 dark:text-slate-400">
                                             {{ if gt (len .ReleaseDate) 10 }}{{ printf "%.10s" .ReleaseDate }}{{ else }}{{ .ReleaseDate }}{{ end }}{{ if gt .TrackCount 0 }} • {{ .TrackCount }} tracks{{ end }}
                                         </p>
                                     </div>
@@ -495,7 +495,7 @@
                 <h2 class="text-lg font-semibold">
                     Concert map
                 </h2>
-                <p class="text-xs text-slate-400">
+                <p class="text-xs text-slate-600 dark:text-slate-400">
                     Click a marker to see concert dates for that location.
                 </p>
 
@@ -510,21 +510,21 @@
                     <button
                             id="map_fit_btn"
                             type="button"
-                            class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-slate-200 hover:bg-slate-800/90 transition-colors"
+                            class="inline-flex items-center rounded-full border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800/90"
                     >
                         Fit map
                     </button>
                     <button
                             id="map_geolocate_btn"
                             type="button"
-                            class="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-slate-200 hover:bg-slate-800/90 transition-colors"
+                            class="inline-flex items-center rounded-full border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800/90"
                     >
                         My location
                     </button>
-                    <span id="map_geolocate_status" class="text-xs text-slate-400"></span>
+                    <span id="map_geolocate_status" class="text-xs text-slate-600 dark:text-slate-400"></span>
                 </div>
 
-                <div id="map" class="w-full h-80 md:h-96 rounded-xl border border-slate-800 overflow-hidden"></div>
+                <div id="map" class="w-full h-80 md:h-96 rounded-xl border border-slate-200 overflow-hidden dark:border-slate-800"></div>
 
                 <script id="artist_locations_json" type="application/json">{{ .LocationsJSON }}</script>
 
@@ -536,11 +536,11 @@
 
                 <script src="{{ .BasePath }}/static/js/artist_map.js"></script>
 
-                <div class="space-y-2 rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-                    <h3 class="text-sm font-semibold text-slate-200">
+                <div class="space-y-2 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900/60">
+                    <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-200">
                         Concerts timeline
                     </h3>
-                    <div id="concert_timeline" class="text-xs text-slate-400">
+                    <div id="concert_timeline" class="text-xs text-slate-600 dark:text-slate-400">
                         Loading visualization...
                     </div>
                 </div>
