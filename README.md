@@ -9,6 +9,15 @@ Groupie Tracker is a small Go web app built for the Groupie Tracker school proje
 
 In Groupie mode, artist detail pages also include a Leaflet map with concert locations (geocoded via Open-Meteo and OpenStreetMap Nominatim).
 
+## Feature List
+
+- Multi-source browsing (Groupie, Spotify, Deezer, Apple)
+- Artist detail pages with tracks, albums, and Wikipedia summaries
+- Groupie concert maps with geocoded locations
+- Live search and filtering on the artists list
+- Accounts with secure sessions
+- Favorites across all APIs, with a dedicated favorites page
+
 ## Tech Stack
 
 - Backend: Go (see `go.mod`)
