@@ -3,13 +3,18 @@ package handlers
 import (
 	"html/template"
 	"net/http"
+
+	"palasgroupietracker/internal/store"
 )
 
 type NotFoundPageData struct {
-	Title     string
-	Source    string
-	ActiveNav string
-	BasePath  string
+	Title      string
+	Source     string
+	ActiveNav  string
+	BasePath   string
+	CurrentURL string
+	User       *store.User
+	IsAuthed   bool
 }
 
 // NotFound renders the custom 404 page using the shared layout
@@ -27,11 +32,16 @@ func NotFound(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	user, authed := getCurrentUser(w, r)
+
 	data := NotFoundPageData{
-		Title:     "Page not found",
-		Source:    getSource(r),
-		ActiveNav: "",
-		BasePath:  getBasePath(r),
+		Title:      "Page not found",
+		Source:     getSource(r),
+		ActiveNav:  "",
+		BasePath:   getBasePath(r),
+		CurrentURL: buildCurrentURL(r),
+		User:       user,
+		IsAuthed:   authed,
 	}
 
 	if err := tmpl.ExecuteTemplate(w, "layout", data); err != nil {
