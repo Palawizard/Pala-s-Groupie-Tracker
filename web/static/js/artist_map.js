@@ -32,7 +32,7 @@
   }).addTo(map);
 
   function markerKey(lat, lng) {
-    // Keep stable across scripts and avoid float noise.
+    // Keep stable across scripts and avoid float noise
     return Number(lat).toFixed(5) + "," + Number(lng).toFixed(5);
   }
 
@@ -66,8 +66,8 @@
       popup.appendChild(ul);
     }
 
-    const marker = window.L.marker([lat, lng]).addTo(map).bindPopup(popup);
-    state.locationMarkersByKey[markerKey(lat, lng)] = marker;
+    state.locationMarkersByKey[markerKey(lat, lng)] =
+      window.L.marker([lat, lng]).addTo(map).bindPopup(popup);
     // Use bounds to auto-fit the map view to all markers
     bounds.push([lat, lng]);
   }
@@ -80,7 +80,7 @@
 
   map.fitBounds(bounds, { padding: [24, 24] });
 
-  // Expose a small hook so other scripts (geolocation/viz) can reuse the map instance.
+  // Expose a small hook so other scripts (geolocation/viz) can reuse the map instance
   state.leafletMap = map;
   state.concertBounds = bounds.slice();
 

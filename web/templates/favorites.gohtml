@@ -1,0 +1,51 @@
+{{ define "content" }}
+    <section class="space-y-6">
+        <div>
+            <h1 class="text-2xl font-semibold tracking-tight">Favorites</h1>
+            <p class="text-sm text-slate-600 dark:text-slate-300">
+                All your favorite artists across Groupie, Spotify, Deezer, and Apple.
+            </p>
+        </div>
+
+        {{ if .Cards }}
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {{ range .Cards }}
+                    <article class="group relative rounded-lg border border-slate-200 bg-white p-3 hover:border-emerald-500/70 hover:bg-slate-50 transition-colors dark:border-slate-800 dark:bg-slate-900/60 dark:hover:bg-slate-900">
+                        <a href="{{ .LinkURL }}" class="block">
+                            <div class="flex flex-col gap-2">
+                                {{ if .ImageURL }}
+                                    <div class="relative">
+                                        <img src="{{ .ImageURL }}" alt="{{ .Name }}" class="w-full h-40 object-cover rounded-md">
+                                        <span class="absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-semibold text-slate-950 {{ if eq .Source "spotify" }}bg-emerald-400{{ else if eq .Source "deezer" }}bg-sky-400{{ else if eq .Source "apple" }}bg-slate-200{{ else }}bg-slate-300{{ end }}">
+                                            {{ .Badge }}
+                                        </span>
+                                    </div>
+                                {{ else }}
+                                    <div class="relative w-full h-40 rounded-md border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-950/60">
+                                        <span class="absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-semibold text-slate-950 {{ if eq .Source "spotify" }}bg-emerald-400{{ else if eq .Source "deezer" }}bg-sky-400{{ else if eq .Source "apple" }}bg-slate-200{{ else }}bg-slate-300{{ end }}">
+                                            {{ .Badge }}
+                                        </span>
+                                    </div>
+                                {{ end }}
+                                <div class="flex items-center justify-between">
+                                    <h2 class="text-base font-semibold">{{ .Name }}</h2>
+                                </div>
+                                <p class="text-xs text-slate-600 dark:text-slate-400">{{ .Meta }}</p>
+                            </div>
+                        </a>
+                        <form method="POST" action="{{ $.BasePath }}/favorites/toggle" class="absolute top-3 right-3">
+                            <input type="hidden" name="source" value="{{ .Source }}">
+                            <input type="hidden" name="artist_id" value="{{ .ArtistID }}">
+                            <input type="hidden" name="redirect" value="{{ $.CurrentURL }}">
+                            <button type="submit" class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 bg-white/90 text-amber-500 shadow-sm hover:bg-amber-50 transition-colors dark:border-slate-700 dark:bg-slate-950/90 dark:hover:bg-slate-900" aria-label="Remove favorite">★</button>
+                        </form>
+                    </article>
+                {{ end }}
+            </div>
+        {{ else }}
+            <div class="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-300">
+                No favorites yet. Visit the artists list and tap the star to save an artist.
+            </div>
+        {{ end }}
+    </section>
+{{ end }}

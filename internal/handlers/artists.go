@@ -11,6 +11,7 @@ import (
 
 	"palasgroupietracker/internal/api"
 	"palasgroupietracker/internal/geo"
+	"palasgroupietracker/internal/store"
 )
 
 type SpotifyArtistView struct {
@@ -36,6 +37,10 @@ type ArtistsPageData struct {
 	Title           string
 	Source          string
 	BasePath        string
+	CurrentURL      string
+	User            *store.User
+	IsAuthed        bool
+	FavoriteIDs     map[string]bool
 	Artists         []api.Artist
 	Spotify         []SpotifyArtistView
 	Deezer          []DeezerArtistView
@@ -67,6 +72,7 @@ type ArtistsPageData struct {
 func ArtistsHandler(w http.ResponseWriter, r *http.Request) {
 	source := getSource(r)
 	basePath := getBasePath(r)
+	user, authed := getCurrentUser(w, r)
 
 	var data ArtistsPageData
 	var err error
@@ -89,6 +95,10 @@ func ArtistsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data.BasePath = basePath
+	data.CurrentURL = buildCurrentURL(r)
+	data.User = user
+	data.IsAuthed = authed
+	data.FavoriteIDs = favoriteIDMap(r, user, source)
 
 	tmpl, err := template.ParseFiles(
 		"web/templates/layout.gohtml",
@@ -109,6 +119,7 @@ func ArtistsHandler(w http.ResponseWriter, r *http.Request) {
 func ArtistsAjaxHandler(w http.ResponseWriter, r *http.Request) {
 	source := getSource(r)
 	basePath := getBasePath(r)
+	user, authed := getCurrentUser(w, r)
 
 	var data ArtistsPageData
 	var err error
@@ -129,6 +140,10 @@ func ArtistsAjaxHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data.BasePath = basePath
+	data.CurrentURL = buildArtistsListURL(r)
+	data.User = user
+	data.IsAuthed = authed
+	data.FavoriteIDs = favoriteIDMap(r, user, source)
 
 	tmpl, err := template.ParseFiles("web/templates/artists.gohtml")
 	if err != nil {
@@ -608,11 +623,11 @@ func parseFirstAlbumDate(s string) (time.Time, bool) {
 	if s == "" {
 		return time.Time{}, false
 	}
-	// Groupie usually uses DD-MM-YYYY.
+	// Groupie usually uses DD-MM-YYYY
 	if t, err := time.Parse("02-01-2006", s); err == nil {
 		return t, true
 	}
-	// Accept ISO as a fallback if the dataset changes.
+	// Accept ISO as a fallback if the dataset changes
 	if t, err := time.Parse("2006-01-02", s); err == nil {
 		return t, true
 	}
@@ -620,32 +635,32 @@ func parseFirstAlbumDate(s string) (time.Time, bool) {
 }
 
 func computeFirstAlbumBounds(artists []api.Artist) (time.Time, time.Time) {
-	var min time.Time
-	var max time.Time
+	var minDate time.Time
+	var maxDate time.Time
 
 	for _, a := range artists {
 		d, ok := parseFirstAlbumDate(a.FirstAlbum)
 		if !ok {
 			continue
 		}
-		if min.IsZero() || d.Before(min) {
-			min = d
+		if minDate.IsZero() || d.Before(minDate) {
+			minDate = d
 		}
-		if max.IsZero() || d.After(max) {
-			max = d
+		if maxDate.IsZero() || d.After(maxDate) {
+			maxDate = d
 		}
 	}
 
-	if min.IsZero() || max.IsZero() {
-		// Keep sane defaults if parsing fails.
-		min = time.Date(1900, 1, 1, 0, 0, 0, 0, time.UTC)
-		max = time.Date(2100, 12, 31, 0, 0, 0, 0, time.UTC)
+	if minDate.IsZero() || maxDate.IsZero() {
+		// Keep sane defaults if parsing fails
+		minDate = time.Date(1900, 1, 1, 0, 0, 0, 0, time.UTC)
+		maxDate = time.Date(2100, 12, 31, 0, 0, 0, 0, time.UTC)
 	}
-	if max.Before(min) {
-		max = min
+	if maxDate.Before(minDate) {
+		maxDate = minDate
 	}
 
-	return min, max
+	return minDate, maxDate
 }
 
 func normalizeForMatch(s string) string {

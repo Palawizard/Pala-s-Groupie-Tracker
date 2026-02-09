@@ -100,7 +100,7 @@
     });
   }
 
-  // Timeline: each dot is a unique day with at least one concert date entry.
+  // Timeline: each dot is a unique day with at least one concert date entry
   function renderTimeline(locs) {
     if (!timelineEl) return;
 
@@ -144,7 +144,7 @@
           if (found) {
             found.count += 1;
           } else {
-            // Private key used only for dedupe.
+            // Private key used only for dedupe
             list.push({ name: locName, lat, lng, count: 1, _k: key });
           }
           concertsByDay.set(parsed.iso, list);
@@ -266,7 +266,7 @@
     }
 
     // Dots: keep them on the baseline (timeline). If multiple dots land on the same pixel X,
-    // spread them horizontally a bit so they remain individually hoverable.
+    // spread them horizontally a bit so they remain individually hoverable
     const byX = new Map(); // number -> Array<{iso: string, c: number}>
 
     for (const iso of activeDays) {
@@ -319,7 +319,7 @@
         t.textContent = `${it.iso}: ${it.c} concert(s)`;
         dot.appendChild(t);
 
-        // Bigger invisible hit area for easier clicking.
+        // Bigger invisible hit area for easier clicking
         const hit = document.createElementNS(svgNS, "circle");
         hit.setAttribute("cx", String(xAdj));
         hit.setAttribute("cy", String(baseY));
@@ -346,12 +346,12 @@
     const header = document.createElement("div");
     header.className = "flex flex-wrap items-center justify-between gap-2 pb-2";
     const title = document.createElement("div");
-    title.className = "text-[11px] text-slate-400";
+    title.className = "text-[11px] text-slate-600 dark:text-slate-400";
     title.textContent = `${formatISODate(minDate)} to ${formatISODate(maxDate)} | ${activeDays.length} active day(s) | ${rawDateEntries} date entr${rawDateEntries === 1 ? "y" : "ies"} | ${totalLocations} location(s)`;
     header.appendChild(title);
 
     const info = document.createElement("div");
-    info.className = "mt-3 rounded-xl border border-slate-800 bg-slate-950/40 p-3";
+    info.className = "mt-3 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950/40";
     info.setAttribute("aria-live", "polite");
     info.textContent = "Click a dot to see the concerts for that date.";
 
@@ -365,14 +365,14 @@
 
       if (selectedISO && dotByISO.get(selectedISO)) {
         const prev = dotByISO.get(selectedISO);
-        prev.setAttribute("stroke", "#0b1220");
+        prev.setAttribute("stroke", document.documentElement.classList.contains("dark") ? "#0b1220" : "#f1f5f9");
         prev.setAttribute("stroke-width", "1.5");
       }
 
       selectedISO = iso;
       const cur = dotByISO.get(iso);
       if (cur) {
-        cur.setAttribute("stroke", "#e2e8f0"); // slate-200
+        cur.setAttribute("stroke", document.documentElement.classList.contains("dark") ? "#e2e8f0" : "#0b1220");
         cur.setAttribute("stroke-width", "2.5");
       }
 
@@ -384,10 +384,10 @@
       const top = document.createElement("div");
       top.className = "flex flex-wrap items-center justify-between gap-2";
       const h = document.createElement("div");
-      h.className = "text-sm font-semibold text-slate-200";
+      h.className = "text-sm font-semibold text-slate-900 dark:text-slate-200";
       h.textContent = iso;
       const meta = document.createElement("div");
-      meta.className = "text-xs text-slate-400";
+      meta.className = "text-xs text-slate-600 dark:text-slate-400";
       meta.textContent = `${total} concert(s)`;
       top.appendChild(h);
       top.appendChild(meta);
@@ -395,7 +395,7 @@
 
       if (concerts.length === 0) {
         const p = document.createElement("p");
-        p.className = "mt-2 text-xs text-slate-400";
+        p.className = "mt-2 text-xs text-slate-600 dark:text-slate-400";
         p.textContent = "No mappable location details for this day.";
         info.appendChild(p);
         return;
@@ -405,22 +405,22 @@
       ul.className = "mt-2 space-y-2";
       for (const c of concerts) {
         const li = document.createElement("li");
-        li.className = "flex items-center justify-between gap-3 rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2";
+        li.className = "flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-800 dark:bg-slate-950/40";
 
         const left = document.createElement("div");
         left.className = "min-w-0";
         const name = document.createElement("div");
-        name.className = "truncate text-xs text-slate-200";
+        name.className = "truncate text-xs text-slate-900 dark:text-slate-200";
         name.textContent = c.name;
         const sub = document.createElement("div");
-        sub.className = "text-[11px] text-slate-400";
+        sub.className = "text-[11px] text-slate-600 dark:text-slate-400";
         sub.textContent = c.count > 1 ? `${c.count} entries` : "1 entry";
         left.appendChild(name);
         left.appendChild(sub);
 
         const btn = document.createElement("button");
         btn.type = "button";
-        btn.className = "shrink-0 inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-slate-200 hover:bg-slate-800/90 transition-colors";
+        btn.className = "shrink-0 inline-flex items-center rounded-full border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800/90";
         btn.textContent = "Show on map";
         btn.addEventListener("click", () => focusMap(c.lat, c.lng));
 
@@ -445,19 +445,18 @@
         return;
       }
 
-      // Fallback: show a temporary marker if we couldn't match one.
+      // Fallback: show a temporary marker if we couldn't match one
       if (state.timelineTempMarker) {
         try { map.removeLayer(state.timelineTempMarker); } catch { /* ignore */ }
         state.timelineTempMarker = null;
       }
-      const m = L.circleMarker([lat, lng], {
+      state.timelineTempMarker = L.circleMarker([lat, lng], {
         radius: 7,
         color: "#38bdf8",
         weight: 2,
         fillColor: "#38bdf8",
         fillOpacity: 0.25,
       }).addTo(map);
-      state.timelineTempMarker = m;
       map.setView([lat, lng], Math.max(map.getZoom(), 5));
     }
   }

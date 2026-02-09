@@ -45,7 +45,7 @@ func FetchArtists() ([]Artist, error) {
 	resp, err := http.Get(artistsURL)
 	if err != nil {
 		if len(stale) > 0 {
-			// Best-effort: keep the UI functional if the API is temporarily unreachable.
+			// Best-effort: keep the UI functional if the API is temporarily unreachable
 			return stale, nil
 		}
 		return nil, err

@@ -5,44 +5,90 @@
         <meta charset="UTF-8">
         <title>{{ .Title }}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
+	        <meta name="color-scheme" content="light dark">
+	        <script>
+	            (function () { // Set theme before CSS loads to avoid a flash
+	                try {
+	                    let pref = localStorage.getItem("theme");
+	                    if (pref === null) pref = "dark"; // preserve the repo's original dark-first look
+	                    const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+	                    if (pref === "dark" || (pref === "system" && prefersDark)) {
+	                        document.documentElement.classList.add("dark");
+	                    }
+	                } catch (e) {
+	                    // Ignore storage errors and keep default theme
+                }
+            })();
+        </script>
         <link rel="stylesheet" href="{{ .BasePath }}/static/css/style.css">
         <link rel="stylesheet" href="{{ .BasePath }}/static/css/dual_slider.css">
         <link rel="stylesheet" href="{{ .BasePath }}/static/css/home_marquee.css">
     </head>
-    <body data-base-path="{{ .BasePath }}" class="min-h-screen bg-slate-950 text-slate-100 antialiased">
-    <header class="border-b border-slate-800">
+    <body data-base-path="{{ .BasePath }}" class="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased transition-colors">
+    <header class="border-b border-slate-200 dark:border-slate-800">
         <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
             <a href="{{ .BasePath }}/" class="text-lg font-semibold tracking-[0.18em] uppercase">
                 Pala's Groupie Tracker
             </a>
-            <div class="flex items-center gap-4">
+            <div class="flex flex-wrap items-center justify-end gap-4">
                 <nav class="hidden sm:flex items-center gap-4 text-sm">
-                    <a href="{{ .BasePath }}/?source={{ .Source }}" class="{{ if eq .ActiveNav "home" }}text-slate-300{{ else }}text-slate-400{{ end }} hover:text-white transition-colors">Home</a>
-                    <a href="{{ .BasePath }}/artists?source={{ .Source }}" class="{{ if eq .ActiveNav "artists" }}text-slate-300{{ else }}text-slate-400{{ end }} hover:text-white transition-colors">Artists</a>
+                    <a href="{{ .BasePath }}/?source={{ .Source }}" class="{{ if eq .ActiveNav "home" }}text-slate-900 dark:text-slate-200{{ else }}text-slate-600 dark:text-slate-400{{ end }} hover:text-slate-950 dark:hover:text-white transition-colors">Home</a>
+                    <a href="{{ .BasePath }}/artists?source={{ .Source }}" class="{{ if eq .ActiveNav "artists" }}text-slate-900 dark:text-slate-200{{ else }}text-slate-600 dark:text-slate-400{{ end }} hover:text-slate-950 dark:hover:text-white transition-colors">Artists</a>
+                    {{ if .IsAuthed }}
+                        <a href="{{ .BasePath }}/favorites?source={{ .Source }}" class="{{ if eq .ActiveNav "favorites" }}text-slate-900 dark:text-slate-200{{ else }}text-slate-600 dark:text-slate-400{{ end }} hover:text-slate-950 dark:hover:text-white transition-colors">Favorites</a>
+                    {{ end }}
                 </nav>
-                <div id="source-toggle" class="flex text-[11px] rounded-full border border-slate-700 overflow-hidden">
+                <div class="flex items-center gap-2 text-xs min-w-0">
+                    {{ if .IsAuthed }}
+                        <span class="hidden sm:inline-block max-w-[140px] md:max-w-[200px] lg:max-w-[260px] truncate text-slate-500 dark:text-slate-400" title="{{ .User.Email }}">{{ .User.Email }}</span>
+                        <form method="POST" action="{{ .BasePath }}/logout">
+                            <button type="submit" class="inline-flex items-center rounded-full border border-slate-300 px-3 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800/90">Logout</button>
+                        </form>
+                    {{ else }}
+                        <a href="{{ .BasePath }}/login?next={{ urlquery .CurrentURL }}" class="inline-flex items-center rounded-full border border-slate-300 px-3 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800/90">Login</a>
+                        <a href="{{ .BasePath }}/register?next={{ urlquery .CurrentURL }}" class="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-400/20 px-3 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-400/30 transition-colors dark:border-emerald-500/60 dark:text-emerald-200 dark:hover:bg-emerald-500/20">Create account</a>
+                    {{ end }}
+                </div>
+                <button
+                        id="theme-toggle"
+                        type="button"
+                        class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 bg-white hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:hover:bg-slate-900 transition-colors"
+                        aria-label="Toggle theme"
+                >
+                    <span class="sr-only">Toggle theme</span>
+                    <!-- Moon (light mode icon) -->
+                    <svg class="h-4 w-4 text-slate-700 dark:hidden" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M21 14.5A8.5 8.5 0 0 1 9.5 3a7 7 0 1 0 11.5 11.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <!-- Sun (dark mode icon) -->
+                    <svg class="hidden h-4 w-4 text-slate-200 dark:block" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/>
+                        <path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+                <div id="source-toggle" class="flex text-[11px] rounded-full border border-slate-300 bg-white/70 overflow-hidden dark:border-slate-700 dark:bg-transparent">
                     <button
                             type="button"
                             data-target="groupie"
-                            class="px-3 py-1 {{ if and (ne .Source "spotify") (ne .Source "deezer") (ne .Source "apple") }}bg-slate-700 text-white{{ else }}text-slate-300{{ end }}">
+                            class="px-3 py-1 {{ if and (ne .Source "spotify") (ne .Source "deezer") (ne .Source "apple") }}bg-slate-200 text-slate-950 dark:bg-slate-700 dark:text-white{{ else }}text-slate-600 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white{{ end }}">
                         Groupie
                     </button>
                     <button
                             type="button"
                             data-target="spotify"
-                            class="px-3 py-1 {{ if eq .Source "spotify" }}bg-emerald-500 text-slate-950{{ else }}text-slate-300{{ end }}">
+                            class="px-3 py-1 {{ if eq .Source "spotify" }}bg-emerald-500 text-slate-950{{ else }}text-slate-600 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white{{ end }}">
                         Spotify
                     </button>
                     <button
                             type="button"
                             data-target="deezer"
-                            class="px-3 py-1 {{ if eq .Source "deezer" }}bg-sky-500 text-slate-950{{ else }}text-slate-300{{ end }}">
+                            class="px-3 py-1 {{ if eq .Source "deezer" }}bg-sky-500 text-slate-950{{ else }}text-slate-600 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white{{ end }}">
                         Deezer
                     </button>
                     <button
                             type="button"
                             data-target="apple"
-                            class="px-3 py-1 {{ if eq .Source "apple" }}bg-slate-200 text-slate-950{{ else }}text-slate-300{{ end }}">
+                            class="px-3 py-1 {{ if eq .Source "apple" }}bg-slate-200 text-slate-950{{ else }}text-slate-600 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white{{ end }}">
                         Apple
                     </button>
                 </div>
@@ -54,6 +100,7 @@
         {{ template "content" . }}
     </main>
 
+    <script src="{{ .BasePath }}/static/js/theme_toggle.js"></script>
     <script src="{{ .BasePath }}/static/js/source_toggle.js"></script>
     </body>
     </html>

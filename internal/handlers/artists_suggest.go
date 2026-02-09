@@ -32,8 +32,8 @@ var (
 
 const suggestCacheTTL = 10 * time.Minute
 
-// ArtistsSuggestHandler returns search suggestions for the artists page.
-// It is intentionally limited to Groupie mode to keep it deterministic and fast.
+// ArtistsSuggestHandler returns search suggestions for the artists page
+// It is intentionally limited to Groupie mode to keep it deterministic and fast
 func ArtistsSuggestHandler(w http.ResponseWriter, r *http.Request) {
 	if getSource(r) != "groupie" {
 		writeJSON(w, http.StatusOK, []Suggestion{})
@@ -62,7 +62,7 @@ func ArtistsSuggestHandler(w http.ResponseWriter, r *http.Request) {
 		score int
 	}
 
-	// Lower score is better.
+	// Lower score is better
 	matches := make([]scored, 0, 16)
 	for _, it := range items {
 		if it.norm == "" {
@@ -85,7 +85,7 @@ func ArtistsSuggestHandler(w http.ResponseWriter, r *http.Request) {
 			return matches[i].score < matches[j].score
 		}
 		if matches[i].item.Type != matches[j].item.Type {
-			// Keep consistent ordering: group -> member -> location.
+			// Keep consistent ordering: group -> member -> location
 			order := func(t string) int {
 				switch t {
 				case "group":
@@ -175,7 +175,7 @@ func getGroupieSuggestItems() ([]suggestItem, error) {
 	for _, rel := range relations.Index {
 		for key := range rel.DatesLocations {
 			_, _, display := geo.QueryFromLocationKey(key)
-			// Use the raw key as a fallback so locations are still discoverable.
+			// Use the raw key as a fallback so locations are still discoverable
 			if strings.TrimSpace(display) == "" {
 				display = key
 			}

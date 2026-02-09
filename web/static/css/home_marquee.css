@@ -8,6 +8,16 @@
     100% { transform: translateX(0); }
 }
 
+:root {
+    /* Match the light-mode marquee background (Tailwind slate-100-ish)*/
+    --marquee-edge: rgb(241 245 249);
+}
+
+/* Theme toggle adds/removes the `dark` class on <html>*/
+.dark {
+    --marquee-edge: rgb(2 6 23);
+}
+
 .marquee {
     position: relative;
     overflow: hidden;
@@ -26,12 +36,12 @@
 
 .marquee::before {
     left: 0;
-    background: linear-gradient(to right, rgb(2 6 23), transparent);
+    background: linear-gradient(to right, var(--marquee-edge), transparent);
 }
 
 .marquee::after {
     right: 0;
-    background: linear-gradient(to left, rgb(2 6 23), transparent);
+    background: linear-gradient(to left, var(--marquee-edge), transparent);
 }
 
 .marquee-track {
