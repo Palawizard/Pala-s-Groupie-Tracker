@@ -7,12 +7,9 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
-	"html/template"
 	"net/http"
 	"strings"
 	"time"
-
-	"golang.org/x/crypto/bcrypt"
 
 	"palasgroupietracker/internal/store"
 )
@@ -20,83 +17,18 @@ import (
 const sessionCookieName = "gt_session"
 const sessionDuration = 14 * 24 * time.Hour
 
-// AuthPageData powers the login and register pages
-type AuthPageData struct {
-	Title      string
-	Source     string
-	ActiveNav  string
-	BasePath   string
-	CurrentURL string
-	User       *store.User
-	IsAuthed   bool
-
-	Email   string
-	Error   string
-	NextURL string
-}
-
-// LoginHandler renders and processes the login form
+// LoginHandler starts the Authentik (OIDC) sign-in. Local passwords are no longer supported.
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
-	source := getSource(r)
-	basePath := getBasePath(r)
-
-	if r.Method == http.MethodPost {
-		handleLoginPost(w, r)
-		return
-	}
-
-	user, authed := getCurrentUser(w, r)
-	if authed {
+	if _, authed := getCurrentUser(w, r); authed {
 		http.Redirect(w, r, resolveNextURL(r.URL.Query().Get("next"), r), http.StatusSeeOther)
 		return
 	}
-
-	data := AuthPageData{
-		Title:      "Login",
-		Source:     source,
-		ActiveNav:  "",
-		BasePath:   basePath,
-		CurrentURL: buildCurrentURL(r),
-		User:       user,
-		IsAuthed:   authed,
-		Email:      "",
-		Error:      "",
-		NextURL:    resolveNextURL(r.URL.Query().Get("next"), r),
-	}
-
-	renderAuthTemplate(w, data, "web/templates/login.gohtml")
+	startOIDCLogin(w, r, resolveNextURL(r.URL.Query().Get("next"), r))
 }
 
-// RegisterHandler renders and processes the registration form
+// RegisterHandler sends new users to Authentik, whose sign-in page offers account creation.
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
-	source := getSource(r)
-	basePath := getBasePath(r)
-
-	if r.Method == http.MethodPost {
-		handleRegisterPost(w, r)
-		return
-	}
-
-	user, authed := getCurrentUser(w, r)
-	if authed {
-		http.Redirect(w, r, resolveNextURL(r.URL.Query().Get("next"), r), http.StatusSeeOther)
-		return
-	}
-
-	data := AuthPageData{
-		Title:      "Create account",
-		Source:     source,
-		ActiveNav:  "",
-		BasePath:   basePath,
-		CurrentURL: buildCurrentURL(r),
-		User:       user,
-		IsAuthed:   authed,
-		Email:      "",
-		Error:      "",
-		NextURL:    resolveNextURL(r.URL.Query().Get("next"), r),
-	}
-
-	renderAuthTemplate(w, data, "web/templates/register.gohtml")
+	LoginHandler(w, r)
 }
 
 // LogoutHandler clears the session cookie and deletes the server session
@@ -115,217 +47,6 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 
 	clearSessionCookie(w, r)
 	http.Redirect(w, r, withBasePath(r, "/")+"?source="+getSource(r), http.StatusSeeOther)
-}
-
-func handleLoginPost(w http.ResponseWriter, r *http.Request) {
-	source := getSource(r)
-	basePath := getBasePath(r)
-	currentURL := buildCurrentURL(r)
-
-	if appStore == nil {
-		data := AuthPageData{
-			Title:      "Login",
-			Source:     source,
-			ActiveNav:  "",
-			BasePath:   basePath,
-			CurrentURL: currentURL,
-			User:       nil,
-			IsAuthed:   false,
-			Email:      "",
-			Error:      "Database is not configured.",
-			NextURL:    resolveNextURL(r.FormValue("next"), r),
-		}
-		renderAuthTemplate(w, data, "web/templates/login.gohtml")
-		return
-	}
-
-	email := strings.TrimSpace(r.FormValue("email"))
-	password := r.FormValue("password")
-	next := resolveNextURL(r.FormValue("next"), r)
-
-	if email == "" || password == "" {
-		data := AuthPageData{
-			Title:      "Login",
-			Source:     source,
-			ActiveNav:  "",
-			BasePath:   basePath,
-			CurrentURL: currentURL,
-			Email:      email,
-			Error:      "Email and password are required.",
-			NextURL:    next,
-		}
-		renderAuthTemplate(w, data, "web/templates/login.gohtml")
-		return
-	}
-
-	user, err := appStore.GetUserByEmail(r.Context(), email)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			data := AuthPageData{
-				Title:      "Login",
-				Source:     source,
-				ActiveNav:  "",
-				BasePath:   basePath,
-				CurrentURL: currentURL,
-				Email:      email,
-				Error:      "Invalid email or password.",
-				NextURL:    next,
-			}
-			renderAuthTemplate(w, data, "web/templates/login.gohtml")
-			return
-		}
-		http.Error(w, "login failed", http.StatusInternalServerError)
-		return
-	}
-
-	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
-		data := AuthPageData{
-			Title:      "Login",
-			Source:     source,
-			ActiveNav:  "",
-			BasePath:   basePath,
-			CurrentURL: currentURL,
-			Email:      email,
-			Error:      "Invalid email or password.",
-			NextURL:    next,
-		}
-		renderAuthTemplate(w, data, "web/templates/login.gohtml")
-		return
-	}
-
-	if err := createSession(w, r, user.ID); err != nil {
-		http.Error(w, "login failed", http.StatusInternalServerError)
-		return
-	}
-
-	http.Redirect(w, r, next, http.StatusSeeOther)
-}
-
-func handleRegisterPost(w http.ResponseWriter, r *http.Request) {
-	source := getSource(r)
-	basePath := getBasePath(r)
-	currentURL := buildCurrentURL(r)
-
-	if appStore == nil {
-		data := AuthPageData{
-			Title:      "Create account",
-			Source:     source,
-			ActiveNav:  "",
-			BasePath:   basePath,
-			CurrentURL: currentURL,
-			User:       nil,
-			IsAuthed:   false,
-			Email:      "",
-			Error:      "Database is not configured.",
-			NextURL:    resolveNextURL(r.FormValue("next"), r),
-		}
-		renderAuthTemplate(w, data, "web/templates/register.gohtml")
-		return
-	}
-
-	email := strings.TrimSpace(r.FormValue("email"))
-	password := r.FormValue("password")
-	confirm := r.FormValue("confirm_password")
-	next := resolveNextURL(r.FormValue("next"), r)
-
-	if email == "" || password == "" {
-		data := AuthPageData{
-			Title:      "Create account",
-			Source:     source,
-			ActiveNav:  "",
-			BasePath:   basePath,
-			CurrentURL: currentURL,
-			Email:      email,
-			Error:      "Email and password are required.",
-			NextURL:    next,
-		}
-		renderAuthTemplate(w, data, "web/templates/register.gohtml")
-		return
-	}
-
-	if len(password) < 8 {
-		data := AuthPageData{
-			Title:      "Create account",
-			Source:     source,
-			ActiveNav:  "",
-			BasePath:   basePath,
-			CurrentURL: currentURL,
-			Email:      email,
-			Error:      "Password must be at least 8 characters.",
-			NextURL:    next,
-		}
-		renderAuthTemplate(w, data, "web/templates/register.gohtml")
-		return
-	}
-
-	if confirm != "" && confirm != password {
-		data := AuthPageData{
-			Title:      "Create account",
-			Source:     source,
-			ActiveNav:  "",
-			BasePath:   basePath,
-			CurrentURL: currentURL,
-			Email:      email,
-			Error:      "Passwords do not match.",
-			NextURL:    next,
-		}
-		renderAuthTemplate(w, data, "web/templates/register.gohtml")
-		return
-	}
-
-	hashBytes, err := bcrypt.GenerateFromPassword([]byte(password), 12)
-	if err != nil {
-		http.Error(w, "registration failed", http.StatusInternalServerError)
-		return
-	}
-
-	user, err := appStore.CreateUser(r.Context(), email, string(hashBytes))
-	if err != nil {
-		if errors.Is(err, store.ErrEmailExists) {
-			data := AuthPageData{
-				Title:      "Create account",
-				Source:     source,
-				ActiveNav:  "",
-				BasePath:   basePath,
-				CurrentURL: currentURL,
-				Email:      email,
-				Error:      "Email already exists.",
-				NextURL:    next,
-			}
-			renderAuthTemplate(w, data, "web/templates/register.gohtml")
-			return
-		}
-		http.Error(w, "registration failed", http.StatusInternalServerError)
-		return
-	}
-
-	if err := createSession(w, r, user.ID); err != nil {
-		http.Error(w, "registration failed", http.StatusInternalServerError)
-		return
-	}
-
-	http.Redirect(w, r, next, http.StatusSeeOther)
-}
-
-func renderAuthTemplate(w http.ResponseWriter, data AuthPageData, pageTemplate string) {
-	tmpl, err := templateWithLayout(pageTemplate)
-	if err != nil {
-		http.Error(w, "template error", http.StatusInternalServerError)
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, "layout", data); err != nil {
-		http.Error(w, "render error", http.StatusInternalServerError)
-		return
-	}
-}
-
-// templateWithLayout loads layout + page template
-func templateWithLayout(pageTemplate string) (*template.Template, error) {
-	return template.ParseFiles(
-		"web/templates/layout.gohtml",
-		pageTemplate,
-	)
 }
 
 func createSession(w http.ResponseWriter, r *http.Request, userID int64) error {

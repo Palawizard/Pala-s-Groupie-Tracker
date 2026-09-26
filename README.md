@@ -62,11 +62,16 @@ DATABASE_URL=postgres://...
 LASTFM_API_KEY=...
 SPOTIFY_CLIENT_ID=...
 SPOTIFY_CLIENT_SECRET=...
+OIDC_ISSUER=https://auth.palawi.fr/application/o/groupie-tracker/
+OIDC_CLIENT_ID=...
+OIDC_CLIENT_SECRET=...
+OIDC_REDIRECT_URL=https://palawi.fr/groupie-tracker/auth/callback
 ```
 
 Notes:
 - `BASE_PATH` (or `X-Forwarded-Prefix`) is for hosting under a sub-path behind a reverse proxy.
 - Without `DATABASE_URL`, auth and favorites are disabled.
+- Sign-in is delegated to Authentik (`auth.palawi.fr`) over OpenID Connect (authorization code + PKCE). Accounts are created there; the app only keeps a local user row keyed by the OIDC subject and its own session cookie.
 - Last.fm is best-effort: without `LASTFM_API_KEY`, listener counts may be `0`.
 
 ## Main Routes
@@ -80,8 +85,8 @@ Routes are registered in `cmd/server/main.go`:
 - `GET /artists/{id}`: artist detail page (behavior depends on source).
 - `GET /favorites`: favorites page (requires login and DB).
 - `POST /favorites/toggle`: add/remove a favorite (requires login and DB).
-- `GET|POST /login`: login.
-- `GET|POST /register`: create account.
+- `GET /login`: redirect to Authentik (`/register` is an alias).
+- `GET /auth/callback`: OIDC callback, opens the local session.
 - `POST /logout`: logout.
 - `GET /static/*`: static assets (CSS, JS, vendor libraries).
 
@@ -91,7 +96,7 @@ Routes are registered in `cmd/server/main.go`:
 - Detail pages: tracks, latest releases, Wikipedia summary.
 - Groupie mode: concert map (Leaflet) and geocoded locations.
 - Live search and filters (year, first album date, members, location) in Groupie mode.
-- Accounts, secure sessions, and persisted favorites (PostgreSQL).
+- Single sign-on through Authentik, secure sessions, and persisted favorites (PostgreSQL).
 
 ## Architecture
 

@@ -15,7 +15,6 @@ import (
 )
 
 var ErrNoDatabaseURL = errors.New("database url not set")
-var ErrEmailExists = errors.New("email already exists")
 
 // Store wraps the database connection and basic CRUD helpers
 type Store struct {
@@ -130,6 +129,13 @@ func (s *Store) Migrate(ctx context.Context) error {
             PRIMARY KEY (user_id, source, artist_id)
         );`,
 		`CREATE INDEX IF NOT EXISTS favorites_source_idx ON favorites(source);`,
+		// Authentication is delegated to Authentik (OIDC): accounts are keyed by the OIDC subject
+		// and no longer store a password.
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_subject TEXT;`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS display_name TEXT NOT NULL DEFAULT '';`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS users_auth_subject_idx ON users(auth_subject);`,
+		`ALTER TABLE users ALTER COLUMN email DROP NOT NULL;`,
+		`ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;`,
 	}
 
 	for _, stmt := range statements {
@@ -141,12 +147,21 @@ func (s *Store) Migrate(ctx context.Context) error {
 	return nil
 }
 
-// User represents an account in the database
+// User represents an account in the database. Identity comes from Authentik (OIDC subject).
 type User struct {
-	ID           int64
-	Email        string
-	PasswordHash string
-	CreatedAt    time.Time
+	ID          int64
+	Email       string
+	DisplayName string
+	AuthSubject string
+	CreatedAt   time.Time
+}
+
+// Label returns the best human-readable name for the user.
+func (u *User) Label() string {
+	if u.DisplayName != "" {
+		return u.DisplayName
+	}
+	return u.Email
 }
 
 // Session represents a persisted login session
@@ -166,51 +181,11 @@ type Favorite struct {
 	CreatedAt time.Time
 }
 
-// CreateUser inserts a new user, returning ErrEmailExists on duplicates
-func (s *Store) CreateUser(ctx context.Context, email, passwordHash string) (*User, error) {
-	if s == nil || s.DB == nil {
-		return nil, errors.New("store not initialized")
-	}
+const userColumns = `id, COALESCE(email, ''), display_name, COALESCE(auth_subject, ''), created_at`
 
-	normalized := strings.ToLower(strings.TrimSpace(email))
-	if normalized == "" {
-		return nil, errors.New("email required")
-	}
-
+func scanUser(row interface{ Scan(...any) error }) (*User, error) {
 	var u User
-	err := s.DB.QueryRowContext(ctx, `
-        INSERT INTO users (email, password_hash)
-        VALUES ($1, $2)
-        RETURNING id, email, password_hash, created_at
-    `, normalized, passwordHash).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.CreatedAt)
-	if err != nil {
-		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" {
-			return nil, ErrEmailExists
-		}
-		return nil, err
-	}
-
-	return &u, nil
-}
-
-// GetUserByEmail fetches a user by email
-func (s *Store) GetUserByEmail(ctx context.Context, email string) (*User, error) {
-	if s == nil || s.DB == nil {
-		return nil, errors.New("store not initialized")
-	}
-
-	normalized := strings.ToLower(strings.TrimSpace(email))
-	if normalized == "" {
-		return nil, sql.ErrNoRows
-	}
-
-	var u User
-	err := s.DB.QueryRowContext(ctx, `
-        SELECT id, email, password_hash, created_at
-        FROM users
-        WHERE email = $1
-    `, normalized).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.CreatedAt)
-	if err != nil {
+	if err := row.Scan(&u.ID, &u.Email, &u.DisplayName, &u.AuthSubject, &u.CreatedAt); err != nil {
 		return nil, err
 	}
 	return &u, nil
@@ -221,17 +196,45 @@ func (s *Store) GetUserByID(ctx context.Context, id int64) (*User, error) {
 	if s == nil || s.DB == nil {
 		return nil, errors.New("store not initialized")
 	}
+	return scanUser(s.DB.QueryRowContext(ctx, `SELECT `+userColumns+` FROM users WHERE id = $1`, id))
+}
 
-	var u User
-	err := s.DB.QueryRowContext(ctx, `
-        SELECT id, email, password_hash, created_at
-        FROM users
-        WHERE id = $1
-    `, id).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.CreatedAt)
-	if err != nil {
-		return nil, err
+// UpsertOIDCUser returns the account linked to an Authentik subject, creating it on first login.
+// Email and display name are refreshed from the identity provider on every login.
+func (s *Store) UpsertOIDCUser(ctx context.Context, subject, email, displayName string) (*User, error) {
+	if s == nil || s.DB == nil {
+		return nil, errors.New("store not initialized")
 	}
-	return &u, nil
+	subject = strings.TrimSpace(subject)
+	if subject == "" {
+		return nil, errors.New("oidc subject required")
+	}
+	email = strings.ToLower(strings.TrimSpace(email))
+
+	var emailArg any
+	if email != "" {
+		emailArg = email
+	}
+	u, err := scanUser(s.DB.QueryRowContext(ctx, `
+        INSERT INTO users (auth_subject, email, display_name)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (auth_subject) DO UPDATE SET display_name = EXCLUDED.display_name
+        RETURNING `+userColumns, subject, emailArg, displayName))
+	if err == nil {
+		// The email is informational only: keep it unique, drop it when another account owns it.
+		_, _ = s.DB.ExecContext(ctx, `
+            UPDATE users SET email = $2 WHERE id = $1 AND $2::text IS NOT NULL
+              AND NOT EXISTS (SELECT 1 FROM users WHERE email = $2 AND id <> $1)`, u.ID, emailArg)
+		return s.GetUserByID(ctx, u.ID)
+	}
+	if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" {
+		// Email already used by another (legacy) account: create the profile without it.
+		return scanUser(s.DB.QueryRowContext(ctx, `
+            INSERT INTO users (auth_subject, display_name) VALUES ($1, $2)
+            ON CONFLICT (auth_subject) DO UPDATE SET display_name = EXCLUDED.display_name
+            RETURNING `+userColumns, subject, displayName))
+	}
+	return nil, err
 }
 
 // CreateSession inserts a new session record
