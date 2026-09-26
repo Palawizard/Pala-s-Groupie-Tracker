@@ -75,6 +75,10 @@ Notes:
 - Sign-in is delegated to Authentik (`auth.palawi.fr`) over OpenID Connect (authorization code + PKCE). Accounts are created there; the app only keeps a local user row keyed by the OIDC subject and its own session cookie.
 - Last.fm is best-effort: without `LASTFM_API_KEY`, listener counts may be `0`.
 
+## Deployment
+
+Production runs on vm-apps (`/opt/dockpanel/stacks/palas-groupie-tracker`). A systemd timer checks `main` every ~3 minutes and redeploys automatically after a merge: build, start, health check on `https://palawi.fr/groupie-tracker/`, and automatic rollback to the previous commit if anything fails. Results are posted on Discord.
+
 ## Main Routes
 
 Routes are registered in `cmd/server/main.go`:
