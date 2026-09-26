@@ -66,6 +66,7 @@ OIDC_ISSUER=https://auth.palawi.fr/application/o/groupie-tracker/
 OIDC_CLIENT_ID=...
 OIDC_CLIENT_SECRET=...
 OIDC_REDIRECT_URL=https://palawi.fr/groupie-tracker/auth/callback
+OIDC_ENROLLMENT_URL=https://auth.palawi.fr/if/flow/inscription/   # optional
 ```
 
 Notes:
@@ -85,7 +86,8 @@ Routes are registered in `cmd/server/main.go`:
 - `GET /artists/{id}`: artist detail page (behavior depends on source).
 - `GET /favorites`: favorites page (requires login and DB).
 - `POST /favorites/toggle`: add/remove a favorite (requires login and DB).
-- `GET /login`: redirect to Authentik (`/register` is an alias).
+- `GET /login`: redirect to Authentik.
+- `GET /register`: Authentik's sign-up page first (`OIDC_ENROLLMENT_URL`), then back here signed in; plain sign-in if unset.
 - `GET /auth/callback`: OIDC callback, opens the local session.
 - `POST /logout`: logout.
 - `GET /static/*`: static assets (CSS, JS, vendor libraries).

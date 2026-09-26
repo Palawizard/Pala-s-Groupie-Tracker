@@ -19,16 +19,21 @@ const sessionDuration = 14 * 24 * time.Hour
 
 // LoginHandler starts the Authentik (OIDC) sign-in. Local passwords are no longer supported.
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
-	if _, authed := getCurrentUser(w, r); authed {
-		http.Redirect(w, r, resolveNextURL(r.URL.Query().Get("next"), r), http.StatusSeeOther)
-		return
-	}
-	startOIDCLogin(w, r, resolveNextURL(r.URL.Query().Get("next"), r))
+	startAuth(w, r, false)
 }
 
-// RegisterHandler sends new users to Authentik, whose sign-in page offers account creation.
+// RegisterHandler opens Authentik's account creation page, then signs the new user in.
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
-	LoginHandler(w, r)
+	startAuth(w, r, true)
+}
+
+func startAuth(w http.ResponseWriter, r *http.Request, signup bool) {
+	next := resolveNextURL(r.URL.Query().Get("next"), r)
+	if _, authed := getCurrentUser(w, r); authed {
+		http.Redirect(w, r, next, http.StatusSeeOther)
+		return
+	}
+	startOIDCLogin(w, r, next, signup)
 }
 
 // LogoutHandler clears the session cookie and deletes the server session

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -19,6 +20,8 @@ import (
 
 // Sign-in is delegated to Authentik (https://auth.palawi.fr) through OpenID Connect.
 // Required env: OIDC_ISSUER, OIDC_CLIENT_ID, OIDC_CLIENT_SECRET, OIDC_REDIRECT_URL.
+// Optional env: OIDC_ENROLLMENT_URL, the provider's sign-up page (e.g. https://auth.palawi.fr/if/flow/inscription/).
+// "Create account" sends users there first; the page returns to the usual authorization request via ?next=.
 
 const oidcStateCookie = "gt_oidc"
 const oidcStateTTL = 10 * time.Minute
@@ -85,8 +88,30 @@ func randomToken() string {
 	return base64.RawURLEncoding.EncodeToString(buf)
 }
 
+// enrollmentURL wraps an authorization URL in the provider's sign-up page, if one is configured.
+// Authentik only accepts a relative ?next=, so the sign-up page must live on the same host.
+func enrollmentURL(authorizeURL string) string {
+	raw := strings.TrimSpace(os.Getenv("OIDC_ENROLLMENT_URL"))
+	if raw == "" {
+		return authorizeURL
+	}
+	signup, err := url.Parse(raw)
+	if err != nil {
+		return authorizeURL
+	}
+	authz, err := url.Parse(authorizeURL)
+	if err != nil || authz.Host != signup.Host {
+		return authorizeURL
+	}
+	q := signup.Query()
+	q.Set("next", authz.RequestURI())
+	signup.RawQuery = q.Encode()
+	return signup.String()
+}
+
 // startOIDCLogin redirects the browser to Authentik, remembering where to come back.
-func startOIDCLogin(w http.ResponseWriter, r *http.Request, next string) {
+// With signup, the account creation page is shown first.
+func startOIDCLogin(w http.ResponseWriter, r *http.Request, next string, signup bool) {
 	client, err := getOIDC(r.Context())
 	if err != nil {
 		log.Println("oidc:", err)
@@ -104,8 +129,11 @@ func startOIDCLogin(w http.ResponseWriter, r *http.Request, next string) {
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   int(oidcStateTTL.Seconds()),
 	})
-	url := client.oauth.AuthCodeURL(st.State, oidc.Nonce(st.Nonce), oauth2.S256ChallengeOption(st.Verifier))
-	http.Redirect(w, r, url, http.StatusFound)
+	target := client.oauth.AuthCodeURL(st.State, oidc.Nonce(st.Nonce), oauth2.S256ChallengeOption(st.Verifier))
+	if signup {
+		target = enrollmentURL(target)
+	}
+	http.Redirect(w, r, target, http.StatusFound)
 }
 
 func readOIDCState(w http.ResponseWriter, r *http.Request) (*oidcState, bool) {
