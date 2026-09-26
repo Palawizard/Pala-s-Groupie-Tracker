@@ -67,6 +67,7 @@ func registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/login", handlers.LoginHandler)
 	mux.HandleFunc("/register", handlers.RegisterHandler)
 	mux.HandleFunc("/logout", handlers.LogoutHandler)
+	mux.HandleFunc("/auth/callback", handlers.OIDCCallbackHandler)
 
 	// Serve static assets from `web/static` under the `/static/` URL prefix
 	fileServer := http.FileServer(http.Dir("web/static"))
