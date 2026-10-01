@@ -3,9 +3,29 @@
     <html lang="en">
     <head>
         <meta charset="UTF-8">
-        <title>{{ .Title }}</title>
+        <title>{{ if eq .ActiveNav "home" }}Pala's Groupie Tracker · artists, concerts and releases{{ else }}{{ .Title }} · Pala's Groupie Tracker{{ end }}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
 	        <meta name="color-scheme" content="light dark">
+	        <meta name="description" content="Browse artists and bands, their members, albums and concert dates on a world map, and compare Groupie, Spotify, Deezer and Apple Music data side by side.">
+	        {{ if eq .ActiveNav "home" }}
+	        <link rel="canonical" href="https://palawi.fr{{ .BasePath }}/">
+	        <meta name="robots" content="index, follow">
+	        {{ else }}
+	        <meta name="robots" content="noindex, follow">
+	        {{ end }}
+	        <meta property="og:type" content="website">
+	        <meta property="og:site_name" content="Pala's Groupie Tracker">
+	        <meta property="og:url" content="https://palawi.fr{{ .BasePath }}/">
+	        <meta property="og:title" content="Pala's Groupie Tracker">
+	        <meta property="og:description" content="Browse artists and bands, their members, albums and concert dates on a world map, and compare Groupie, Spotify, Deezer and Apple Music data side by side.">
+	        <meta property="og:image" content="https://palawi.fr{{ .BasePath }}/static/og-image.png">
+	        <meta property="og:image:width" content="512">
+	        <meta property="og:image:height" content="512">
+	        <meta name="twitter:card" content="summary">
+	        <meta name="theme-color" content="#020617">
+	        <link rel="icon" href="{{ .BasePath }}/static/favicon.ico" sizes="48x48">
+	        <link rel="icon" href="{{ .BasePath }}/static/favicon.svg" type="image/svg+xml">
+	        <link rel="apple-touch-icon" href="{{ .BasePath }}/static/apple-touch-icon.png">
 	        <script>
 	            (function () { // Set theme before CSS loads to avoid a flash
 	                try {
