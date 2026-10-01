@@ -25,14 +25,14 @@
         }
     }
 
-    // openModal sets the iframe src and shows the modal
+    // openModal shows the modal; the player loads once music players are allowed
     function openModal(payload) {
         const spotifyUrl = payload.spotifyUrl || "";
         const embedUrl = toEmbedUrl(spotifyUrl);
         if (!embedUrl) return;
         if (!window.GroupieEmbedModal) return;
 
-        window.GroupieEmbedModal.showModal(modalRoot, iframe, openSpotify, spotifyUrl, embedUrl);
+        window.GroupieEmbedModal.showModal(modalRoot, iframe, openSpotify, spotifyUrl, embedUrl, "Spotify");
     }
 
     // closeModal hides the modal and clears the iframe

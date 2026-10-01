@@ -18,7 +18,7 @@
         return "https://widget.deezer.com/widget/dark/" + safeType + "/" + encodeURIComponent(safeID);
     }
 
-    // openModal sets the iframe src and shows the modal
+    // openModal shows the modal; the player loads once music players are allowed
     function openModal(payload) {
         const deezerUrl = payload.deezerUrl || "";
         const type = payload.type || "track";
@@ -28,7 +28,7 @@
         if (!embedUrl) return;
         if (!window.GroupieEmbedModal) return;
 
-        window.GroupieEmbedModal.showModal(modalRoot, iframe, openDeezer, deezerUrl, embedUrl);
+        window.GroupieEmbedModal.showModal(modalRoot, iframe, openDeezer, deezerUrl, embedUrl, "Deezer");
     }
 
     // closeModal hides the modal and clears the iframe

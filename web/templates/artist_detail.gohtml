@@ -1,3 +1,15 @@
+{{ define "consent_script" }}
+    {{ if eq .Source "spotify" }}
+        <script src="/consent/palawi-consent.js" data-purposes="music" data-providers="Spotify"></script>
+    {{ else if eq .Source "deezer" }}
+        <script src="/consent/palawi-consent.js" data-purposes="music" data-providers="Deezer"></script>
+    {{ else if eq .Source "apple" }}
+        <script src="/consent/palawi-consent.js" data-purposes="music" data-providers="Apple Music"></script>
+    {{ else }}
+        <script src="/consent/palawi-consent.js"></script>
+    {{ end }}
+{{ end }}
+
 {{ define "content" }}
     <!--suppress HtmlUnknownTarget -->
 	    <section class="space-y-6">
@@ -155,14 +167,16 @@
             </div>
         </div>
 
+        <script src="{{ .BasePath }}/static/js/music_consent.js"></script>
         <script src="{{ .BasePath }}/static/js/embed_modal.js"></script>
 
         {{ if eq .Source "spotify" }}
             {{ if .SpotifyTopTracks }}
-            <div class="space-y-3">
+            <div class="space-y-3" data-preview-section>
                 <h2 class="text-lg font-semibold">
                     Popular tracks
                 </h2>
+                <div data-preview-gate data-provider="Spotify" class="hidden rounded-xl overflow-hidden"></div>
                 <div class="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/60">
                     <table class="min-w-full text-sm text-slate-800 dark:text-slate-200">
                         <thead class="bg-slate-100 text-xs uppercase text-slate-600 dark:bg-slate-900/80 dark:text-slate-400">
@@ -208,9 +222,7 @@
                                             Open
                                         </button>
                                     {{ else if $track.PreviewURL }}
-                                        <audio controls class="h-8 w-full max-w-[140px] ml-auto">
-                                            <source src="{{ $track.PreviewURL }}" type="audio/mpeg">
-                                        </audio>
+                                        <audio controls preload="none" data-consent-src="{{ $track.PreviewURL }}" class="hidden h-8 w-full max-w-[140px] ml-auto"></audio>
                                     {{ end }}
                                 </td>
                             </tr>
@@ -260,16 +272,17 @@
 
                 <div class="relative w-[min(92vw,540px)] rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950">
                     <div class="p-4">
-                        <iframe
-                                id="spotify_modal_iframe"
-                                title="Spotify player"
-                                src=""
-                                width="100%"
-                                height="152"
-                                class="border-0 rounded-xl"
-                                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                                loading="lazy"
-                        ></iframe>
+                        <div id="spotify_modal_player" class="rounded-xl overflow-hidden">
+                            <iframe
+                                    id="spotify_modal_iframe"
+                                    title="Spotify player"
+                                    width="100%"
+                                    height="152"
+                                    class="hidden border-0 rounded-xl"
+                                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                                    loading="lazy"
+                            ></iframe>
+                        </div>
 
                         <div class="mt-4 flex items-center justify-end gap-2">
                             <a id="spotify_modal_open_spotify" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full border border-slate-300 px-3 py-1 text-xs font-medium text-emerald-600 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-emerald-400 dark:hover:bg-slate-900">
@@ -288,10 +301,11 @@
 
         {{ if eq .Source "deezer" }}
             {{ if .DeezerTopTracks }}
-            <div class="space-y-3">
+            <div class="space-y-3" data-preview-section>
                 <h2 class="text-lg font-semibold">
                     Top tracks
                 </h2>
+                <div data-preview-gate data-provider="Deezer" class="hidden rounded-xl overflow-hidden"></div>
                 <div class="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/60">
                     <table class="min-w-full text-sm text-slate-800 dark:text-slate-200">
                         <thead class="bg-slate-100 text-xs uppercase text-slate-600 dark:bg-slate-900/80 dark:text-slate-400">
@@ -339,9 +353,7 @@
                                             Open
                                         </button>
                                     {{ else if $track.Preview }}
-                                        <audio controls class="h-8 w-full max-w-[140px] ml-auto">
-                                            <source src="{{ $track.Preview }}" type="audio/mpeg">
-                                        </audio>
+                                        <audio controls preload="none" data-consent-src="{{ $track.Preview }}" class="hidden h-8 w-full max-w-[140px] ml-auto"></audio>
                                     {{ end }}
                                 </td>
                             </tr>
@@ -397,16 +409,17 @@
 
                 <div class="relative w-[min(92vw,540px)] rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950">
                     <div class="p-4">
-                        <iframe
-                                id="deezer_modal_iframe"
-                                title="Deezer player"
-                                src=""
-                                width="100%"
-                                height="152"
-                                class="border-0 rounded-xl"
-                                allow="encrypted-media; clipboard-write"
-                                loading="lazy"
-                        ></iframe>
+                        <div id="deezer_modal_player" class="rounded-xl overflow-hidden">
+                            <iframe
+                                    id="deezer_modal_iframe"
+                                    title="Deezer player"
+                                    width="100%"
+                                    height="152"
+                                    class="hidden border-0 rounded-xl"
+                                    allow="encrypted-media; clipboard-write"
+                                    loading="lazy"
+                            ></iframe>
+                        </div>
 
                         <div class="mt-4 flex items-center justify-end gap-2">
                             <a id="deezer_modal_open_deezer" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full border border-slate-300 px-3 py-1 text-xs font-medium text-emerald-600 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-emerald-400 dark:hover:bg-slate-900">
@@ -425,10 +438,11 @@
 
         {{ if eq .Source "apple" }}
             {{ if .AppleTopTracks }}
-                <div class="space-y-3">
+                <div class="space-y-3" data-preview-section>
                     <h2 class="text-lg font-semibold">
                         Top tracks
                     </h2>
+                    <div data-preview-gate data-provider="Apple Music" class="hidden rounded-xl overflow-hidden"></div>
                     <div class="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/60">
                         <table class="min-w-full text-sm text-slate-800 dark:text-slate-200">
                             <thead class="bg-slate-100 text-xs uppercase text-slate-600 dark:bg-slate-900/80 dark:text-slate-400">
@@ -461,9 +475,7 @@
                                     </td>
                                     <td class="px-4 py-2 text-right align-middle">
                                         {{ if .PreviewURL }}
-                                            <audio controls class="h-8 w-full max-w-[160px] ml-auto">
-                                                <source src="{{ .PreviewURL }}" type="audio/mpeg">
-                                            </audio>
+                                            <audio controls preload="none" data-consent-src="{{ .PreviewURL }}" class="hidden h-8 w-full max-w-[160px] ml-auto"></audio>
                                         {{ else if .TrackViewURL }}
                                             <a href="{{ .TrackViewURL }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full border border-slate-300 px-3 py-1 text-xs font-medium text-emerald-600 hover:bg-slate-100 transition-colors dark:border-slate-700 dark:text-emerald-400 dark:hover:bg-slate-800/90">
                                                 Open
