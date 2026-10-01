@@ -43,6 +43,9 @@
         <link rel="stylesheet" href="{{ .BasePath }}/static/css/style.css">
         <link rel="stylesheet" href="{{ .BasePath }}/static/css/dual_slider.css">
         <link rel="stylesheet" href="{{ .BasePath }}/static/css/home_marquee.css">
+        {{/* Shared palawi.fr consent manager. Pages that can show third-party players
+             override this block to declare their purposes (see artist_detail.gohtml). */}}
+        {{ block "consent_script" . }}<script src="/consent/palawi-consent.js"></script>{{ end }}
     </head>
     <body data-base-path="{{ .BasePath }}" class="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased transition-colors">
     <header class="border-b border-slate-200 dark:border-slate-800">
@@ -119,6 +122,13 @@
     <main class="max-w-5xl mx-auto px-4 py-8">
         {{ template "content" . }}
     </main>
+
+    <footer class="border-t border-slate-200 dark:border-slate-800">
+        <div class="max-w-5xl mx-auto px-4 py-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-600 dark:text-slate-400">
+            <a href="/confidentialite/" class="hover:text-slate-950 dark:hover:text-white transition-colors">Privacy and legal notice</a>
+            <button type="button" data-palawi-consent-open class="hover:text-slate-950 dark:hover:text-white transition-colors">Manage cookies</button>
+        </div>
+    </footer>
 
     <script src="{{ .BasePath }}/static/js/theme_toggle.js"></script>
     <script src="{{ .BasePath }}/static/js/source_toggle.js"></script>
