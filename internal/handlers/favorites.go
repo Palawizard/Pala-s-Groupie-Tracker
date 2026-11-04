@@ -227,7 +227,7 @@ func buildFavoriteCard(basePath, source, id string) (FavoriteCard, bool, error) 
 			Source:   "groupie",
 			ArtistID: id,
 			Name:     artist.Name,
-			ImageURL: artist.Image,
+			ImageURL: basePath + artist.Image,
 			LinkURL:  basePath + "/artists/" + id + "?source=groupie",
 			Meta:     meta,
 			Badge:    "Groupie",
