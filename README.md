@@ -30,6 +30,8 @@ This repository is a "Groupie Tracker" school project implemented as a small Go 
 Supported sources via `?source=`:
 `groupie` (default), `spotify`, `deezer`, `apple`.
 
+The original Groupie Trackers API (`groupietrackers.herokuapp.com`) has been taken down, so its dataset (52 artists and their concert relations) ships with the app: JSON in `internal/api/groupiedata/`, images in `web/static/groupie/artists/`.
+
 ## Run Locally
 
 Prerequisites: Go, Node.js/npm. (PostgreSQL is required for accounts and favorites.)
@@ -113,6 +115,7 @@ Routes are registered in `cmd/server/main.go`:
 │       └── main.go                # HTTP mux + routes + static + boot
 ├── internal/
 │   ├── api/                       # API clients: spotify/deezer/apple/lastfm/wiki
+│   │   └── groupiedata/           # embedded Groupie Trackers dataset (artists, relations)
 │   ├── geo/                       # Geocoding / location parsing (Groupie)
 │   ├── handlers/                  # HTTP handlers (pages + actions)
 │   └── store/                     # PostgreSQL: users, sessions, favorites

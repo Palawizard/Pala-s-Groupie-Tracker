@@ -38,7 +38,7 @@
                         <img src="{{ .AppleHeroImage }}" alt="{{ .AppleArtist.ArtistName }}" class="w-full rounded-xl border border-slate-200 dark:border-slate-800">
                     {{ end }}
                 {{ else }}
-                    <img src="{{ .Artist.Image }}" alt="{{ .Artist.Name }}" class="w-full rounded-xl border border-slate-200 dark:border-slate-800">
+                    <img src="{{ .BasePath }}{{ .Artist.Image }}" alt="{{ .Artist.Name }}" class="w-full rounded-xl border border-slate-200 dark:border-slate-800">
                 {{ end }}
             </div>
 

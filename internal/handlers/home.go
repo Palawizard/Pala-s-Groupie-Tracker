@@ -207,7 +207,7 @@ func buildHomeFeatured(basePath, source string) ([]HomeArtistCard, error) {
 		a := artists[i]
 		out = append(out, HomeArtistCard{
 			Name:     a.Name,
-			ImageURL: a.Image,
+			ImageURL: basePath + a.Image,
 			LinkURL:  basePath + "/artists/" + strconv.Itoa(a.ID) + "?source=groupie",
 			// Keep metadata short so cards stay visually balanced
 			Meta:  fmt.Sprintf("Created %d • %d members", a.CreationDate, len(a.Members)),
